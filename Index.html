@@ -2,127 +2,26 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>BFE P3 • Beef Sub-Primal Forecast</title>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beef Sub-Primal Forecast</title>
 <style>
-:root{
-  --bg:#070a0f; --bg2:#0d1117; --bg3:#131920; --bg4:#1a2332;
-  --text:#dde5f0; --text2:#7a8899; --text3:#3d4d5e;
-  --green:#3dd68c; --red:#f25f5c; --purple:#a78bfa; --blue:#4e9df5;
-}
-* { box-sizing:border-box; margin:0; padding:0; }
-body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; line-height:1.4; }
-.app { max-width:100%; padding:16px; margin:0 auto; }
-
-.topbar { display:flex; justify-content:space-between; align-items:center; padding-bottom:12px; border-bottom:1px solid #222; margin-bottom:16px; }
-h1 { font-size:18px; }
-
-.ctrl { width:100%; padding:12px; background:#1a2332; border:1px solid #333; border-radius:8px; color:white; margin-bottom:12px; font-size:16px; }
-
-.list-panel { background:#0d1117; border:1px solid #222; border-radius:12px; overflow:hidden; margin-bottom:20px; }
-.cut-row { padding:14px 16px; display:flex; align-items:center; gap:12px; border-bottom:1px solid #222; cursor:pointer; }
-.cut-row:active { background:#1e2a3d; }
-
-.card { background:#0d1117; border:1px solid #222; border-radius:12px; padding:16px; }
+  body { font-family: system-ui, sans-serif; background: #0a0e14; color: #ddd; padding: 20px; margin: 0; }
+  h1 { text-align: center; color: #a78bfa; }
+  .cut { padding: 15px; background: #161b22; margin: 10px 0; border-radius: 10px; border-left: 4px solid #a78bfa; }
 </style>
 </head>
 <body>
-<div class="app">
-
-<div class="topbar">
   <h1>SUB-PRIMAL FORECAST</h1>
-  <button onclick="initApp()" style="padding:8px 16px; background:#1f2937; color:white; border:none; border-radius:8px;">↻</button>
-</div>
-
-<input type="text" id="searchInp" class="ctrl" placeholder="Search IMPS or cut name..." oninput="renderCutList()">
-
-<div class="list-panel">
-  <div style="padding:12px 16px; background:#161b22; font-size:14px; font-weight:500;">AVAILABLE CUTS</div>
-  <div id="cutList"></div>
-</div>
-
-<div id="fc-content" class="card hidden"></div>
-
-</div>
-
-<script>
-// Data
-const CUTS = [
-  {key:'112A-H',imps:'112A',name:'Ribeye Roll Heavy',price:1218,color:'#4e9df5'},
-  {key:'189A',imps:'189A',name:'Tenderloin Heavy',price:1595,color:'#a78bfa'},
-  {key:'180',imps:'180',name:'Strip Loin Bnls',price:1176,color:'#a78bfa'},
-  {key:'116A',imps:'116A',name:'Chuck Roll',price:471,color:'#3dd68c'},
-  {key:'120',imps:'120',name:'Brisket',price:500,color:'#f5a623'},
-  {key:'121C',imps:'121C',name:'Outside Skirt',price:1298,color:'#f25f5c'},
-  {key:'185A',imps:'185A',name:'Sirloin Flap',price:1018,color:'#a78bfa'},
-];
-
-const S = {cut: null, grade: 'choice'};
-
-function renderCutList() {
-  const q = document.getElementById('searchInp').value.toLowerCase();
-  const filtered = CUTS.filter(c => !q || c.imps.toLowerCase().includes(q) || c.name.toLowerCase().includes(q));
-
-  let html = '';
-  filtered.forEach(cut => {
-    html += `
-      <div class="cut-row" onclick="selectCut('${cut.key}')">
-        <div style="font-family:monospace; font-weight:700; min-width:55px; color:${cut.color}">${cut.imps}</div>
-        <div style="flex:1">${cut.name}</div>
-        <div style="color:${cut.color}; font-weight:600">$${cut.price}</div>
-      </div>`;
-  });
-
-  document.getElementById('cutList').innerHTML = html || '<div style="padding:40px; text-align:center; color:#666">No results found</div>';
-}
-
-function selectCut(key) {
-  S.cut = key;
-  const cut = CUTS.find(c => c.key === key);
+  <p style="text-align:center; color:#777;">P3 • Working on GitHub Pages</p>
   
-  document.getElementById('fc-content').classList.remove('hidden');
-  document.getElementById('fc-content').innerHTML = `
-    <h2 style="margin-bottom:8px">${cut.name}</h2>
-    <p style="color:#aaa; margin-bottom:20px">IMPS ${cut.imps} • Current: <strong style="color:${cut.color}">$${cut.price}</strong></p>
-    
-    <canvas id="priceChart" height="160"></canvas>
-    
-    <div style="margin-top:20px; padding:12px; background:#161b22; border-radius:8px; font-size:14px">
-      <strong>12-Month Outlook:</strong><br>
-      Expected range: $${Math.round(cut.price*0.92)} – $${Math.round(cut.price*1.12)}
-    </div>
-  `;
-
-  // Simple price trend chart
-  new Chart(document.getElementById('priceChart'), {
-    type: 'line',
-    data: {
-      labels: ['Now','Jul','Aug','Sep','Oct','Nov','Dec'],
-      datasets: [{
-        label: 'Forecast',
-        data: [cut.price, cut.price*1.04, cut.price*1.08, cut.price*1.05, cut.price*1.02, cut.price*0.98, cut.price*1.03],
-        borderColor: cut.color,
-        borderWidth: 3,
-        tension: 0.4,
-        pointRadius: 4
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: { y: { grid: { color: '#222' } } }
-    }
-  });
-}
-
-function initApp() {
-  renderCutList();
-  setTimeout(() => selectCut('112A-H'), 300);
-}
-
-window.onload = initApp;
-</script>
+  <div class="cut"><strong>112A-H</strong> — Ribeye Roll Heavy — $1218</div>
+  <div class="cut"><strong>189A</strong> — Tenderloin Heavy — $1595</div>
+  <div class="cut"><strong>180</strong> — Strip Loin — $1176</div>
+  <div class="cut"><strong>116A</strong> — Chuck Roll — $471</div>
+  
+  <p style="text-align:center; margin-top:30px; color:#777;">
+    Full dashboard coming soon...<br>
+    <small>Your GitHub Pages is now working!</small>
+  </p>
 </body>
 </html>
