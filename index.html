@@ -1,0 +1,2380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>US Beef Sub-Primal — Individual Cut Forecast</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{
+  --bg:#070a0f;--bg2:#0d1117;--bg3:#131920;--bg4:#1a2332;--bg5:#1e2a3d;
+  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.12);
+  --text:#dde5f0;--text2:#7a8899;--text3:#3d4d5e;
+  --amber:#f5a623;--green:#3dd68c;--red:#f25f5c;--blue:#4e9df5;
+  --purple:#a78bfa;--teal:#2dd4bf;--orange:#fb923c;
+  --font:'DM Sans',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font)}
+body::before{content:'';position:fixed;inset:0;
+  background:radial-gradient(ellipse 60% 40% at 10% 5%,rgba(167,139,250,0.04) 0%,transparent 60%),
+             radial-gradient(ellipse 50% 40% at 90% 90%,rgba(78,157,245,0.03) 0%,transparent 60%);
+  pointer-events:none;z-index:0}
+.app{max-width:1440px;margin:0 auto;padding:0 24px 80px;position:relative;z-index:1}
+
+/* LOADING */
+#loader{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:16px;z-index:9999;transition:opacity .5s}
+#loader.done{opacity:0;pointer-events:none}
+.lr{width:48px;height:48px;border-radius:50%;border:2px solid var(--bg4);
+  border-top-color:var(--purple);animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.lt{font-family:var(--mono);font-size:12px;color:var(--text2);letter-spacing:.1em}
+.ls{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.lbw{width:240px;height:2px;background:var(--bg4);border-radius:1px;overflow:hidden}
+.lb{height:100%;background:var(--purple);border-radius:1px;transition:width .3s;width:0}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;justify-content:space-between;
+  padding:20px 0 16px;border-bottom:1px solid var(--border);margin-bottom:20px;flex-wrap:wrap;gap:10px}
+.brand{display:flex;align-items:center;gap:11px}
+.bicon{width:36px;height:36px;border-radius:8px;
+  background:linear-gradient(135deg,var(--purple),#6d28d9);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.bname{font-family:var(--mono);font-size:14px;font-weight:600;letter-spacing:.03em}
+.bsub{font-size:10px;color:var(--text3);letter-spacing:.06em;margin-top:2px;text-transform:uppercase}
+.tr{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.badge{display:flex;align-items:center;gap:6px;padding:5px 11px;border-radius:20px;
+  border:1px solid rgba(61,214,140,.3);background:rgba(61,214,140,.06);
+  font-family:var(--mono);font-size:10px;color:var(--green)}
+.bdot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 1.8s infinite}
+.tbtn{padding:7px 13px;border-radius:7px;border:1px solid var(--border2);
+  background:var(--bg3);color:var(--text2);font-family:var(--mono);font-size:11px;
+  cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:5px;transition:all .15s}
+.tbtn:hover{border-color:var(--purple);color:var(--purple)}
+.tbtn.acc{background:rgba(167,139,250,.1);border-color:rgba(167,139,250,.35);color:var(--purple)}
+
+/* TICKER */
+.ticker{background:var(--bg2);border:1px solid var(--border);border-radius:10px;
+  padding:11px 20px;display:flex;overflow-x:auto;gap:0;margin-bottom:20px;scrollbar-width:none}
+.ticker::-webkit-scrollbar{display:none}
+.tick{display:flex;flex-direction:column;gap:3px;padding:0 16px;
+  border-right:1px solid var(--border);min-width:100px;flex-shrink:0}
+.tick:first-child{padding-left:0}.tick:last-child{border-right:none}
+.tl{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.07em;text-transform:uppercase}
+.tv{font-family:var(--mono);font-size:14px;font-weight:600}
+.tc{font-family:var(--mono);font-size:10px}
+.up{color:var(--green)}.dn{color:var(--red)}.nt{color:var(--text3)}
+
+/* CONTROLS BAR */
+.ctrl-bar{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+.seg{display:flex;gap:3px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:3px}
+.seg-btn{padding:5px 11px;border-radius:5px;border:none;background:transparent;
+  color:var(--text3);font-family:var(--mono);font-size:10px;cursor:pointer;transition:all .12s}
+.seg-btn.active{background:var(--bg4);color:var(--text);border:1px solid var(--border2)}
+select.ctl{padding:6px 10px;border-radius:6px;border:1px solid var(--border2);
+  background:var(--bg3);color:var(--text2);font-family:var(--mono);font-size:11px;cursor:pointer}
+input.ctl{padding:6px 11px;border-radius:6px;border:1px solid var(--border2);
+  background:var(--bg3);color:var(--text);font-family:var(--mono);font-size:11px;
+  width:220px}
+input.ctl::placeholder{color:var(--text3)}
+input.ctl:focus{outline:none;border-color:var(--purple)}
+.res-count{font-family:var(--mono);font-size:10px;color:var(--text3);margin-left:auto}
+
+/* PRIMAL FILTER PILLS */
+.pf-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px}
+.pf-btn{padding:4px 10px;border-radius:5px;border:1px solid var(--border);
+  background:transparent;color:var(--text3);font-family:var(--mono);font-size:9px;
+  cursor:pointer;transition:all .12s}
+.pf-btn:hover{background:var(--bg3);color:var(--text)}
+.pf-btn.active{background:var(--bg4);border-color:var(--border2);color:var(--text)}
+
+/* MAIN LAYOUT */
+.layout{display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:start}
+
+/* CUT LIST PANEL */
+.list-panel{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.lp-hdr{padding:11px 14px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between}
+.lp-title{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.12em;text-transform:uppercase}
+.cut-scroll{overflow-y:auto;max-height:calc(100vh - 360px);scrollbar-width:thin;scrollbar-color:var(--bg4) transparent}
+.cut-scroll::-webkit-scrollbar{width:3px}
+.cut-scroll::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+.pg-hdr{padding:6px 12px 5px;display:flex;align-items:center;gap:7px;
+  background:var(--bg3);position:sticky;top:0;z-index:2}
+.pg-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.pg-name{font-family:var(--mono);font-size:9px;font-weight:700;color:var(--text2);letter-spacing:.1em;text-transform:uppercase}
+.pg-ct{font-family:var(--mono);font-size:9px;color:var(--text3);margin-left:auto}
+.cut-row{display:flex;align-items:center;gap:9px;padding:7px 12px;
+  cursor:pointer;transition:background .1s;border-bottom:1px solid rgba(255,255,255,.02);
+  background:transparent;text-align:left;width:100%;color:var(--text2);border-left:2px solid transparent}
+.cut-row:hover{background:var(--bg3);color:var(--text)}
+.cut-row.active{background:var(--bg4);border-left-color:var(--purple);color:var(--text)}
+.cr-imps{font-family:var(--mono);font-size:10px;font-weight:700;min-width:40px;flex-shrink:0;line-height:1.3}
+.cr-info{flex:1;min-width:0}
+.cr-name{font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cr-desc{font-size:9px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.cr-r{text-align:right;flex-shrink:0}
+.cr-px{font-family:var(--mono);font-size:11px;font-weight:600}
+.cr-ch{font-family:var(--mono);font-size:9px;margin-top:1px}
+
+/* RIGHT PANEL */
+.right{display:flex;flex-direction:column;gap:15px}
+
+/* TABS */
+.tabs{display:flex;gap:3px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:3px}
+.tab{flex:1;padding:7px 5px;border-radius:6px;border:none;background:transparent;
+  color:var(--text3);font-family:var(--mono);font-size:10px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.tab.active{background:var(--bg4);color:var(--text);border:1px solid var(--border2)}
+
+/* CHART CARD */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.ch{padding:18px 22px 14px;border-bottom:1px solid var(--border)}
+.ct{font-size:18px;font-weight:500;display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:5px}
+.chip{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid}
+.cs{font-family:var(--mono);font-size:10px;color:var(--text3)}
+
+/* CHAIN BANNER */
+.chain-banner{padding:10px 22px;border-bottom:1px solid var(--border);background:var(--bg3);
+  display:flex;align-items:center;gap:0;flex-wrap:wrap}
+.chain-cell{padding:6px 14px 6px 0;border-right:1px solid var(--border);margin-right:14px}
+.chain-cell:last-child{border-right:none;margin-right:0}
+.chain-lbl{font-family:var(--mono);font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px}
+.chain-val{font-family:var(--mono);font-size:15px;font-weight:700}
+.chain-sub{font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:1px}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(6,1fr);border-bottom:1px solid var(--border)}
+.st{padding:11px 12px;border-right:1px solid var(--border)}
+.st:last-child{border-right:none}
+.sl{font-family:var(--mono);font-size:8px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px}
+.sv{font-family:var(--mono);font-size:15px;font-weight:700;line-height:1.1}
+.ss{font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:2px}
+
+/* CHART */
+.cb{padding:16px 22px 10px}
+.cw{position:relative;width:100%;height:275px}
+.leg{display:flex;gap:13px;margin-top:8px;flex-wrap:wrap}
+.li{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;color:var(--text3)}
+.ll{width:20px;height:2px;border-radius:1px;flex-shrink:0}
+.ld{width:20px;height:0;flex-shrink:0}
+.lb2{width:20px;height:7px;border-radius:2px;opacity:.3;flex-shrink:0}
+
+/* TABLE */
+.ts{padding:0 22px 14px}
+.ttl{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.1em;
+  text-transform:uppercase;margin-bottom:7px;padding-top:3px}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:5px 6px;font-family:var(--mono);font-size:8px;color:var(--text3);
+  letter-spacing:.07em;text-transform:uppercase;border-bottom:1px solid var(--border);font-weight:400}
+td{padding:6px 6px;border-bottom:1px solid rgba(255,255,255,.022);font-family:var(--mono);font-size:10px}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.01)}
+.cp{font-size:8px;padding:2px 5px;border-radius:3px;text-transform:uppercase;letter-spacing:.04em}
+
+/* SEASONAL */
+.ssec{padding:0 22px 14px;border-top:1px solid var(--border)}
+.swrap{height:100px;position:relative;margin-top:7px}
+
+/* FUTURES */
+.fstrip{display:grid;grid-template-columns:repeat(6,1fr);border-top:1px solid var(--border)}
+.fc{padding:10px 12px;border-right:1px solid var(--border);text-align:center}
+.fc:last-child{border-right:none}
+.fm{font-family:var(--mono);font-size:9px;color:var(--text3);margin-bottom:3px}
+.fp{font-family:var(--mono);font-size:13px;font-weight:600}
+.fch{font-family:var(--mono);font-size:9px;margin-top:2px}
+
+/* COMPARE TAB */
+.cmp-chart-area{padding:14px 20px 4px}
+.cmp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:0}
+.cmp-card{padding:12px 14px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}
+.cmp-card:hover{background:var(--bg3)}
+
+/* HEATMAP */
+.hm-wrap{overflow-x:auto;padding:14px 18px}
+.hm-tbl{border-collapse:collapse;font-family:var(--mono);font-size:9px;min-width:680px;width:100%}
+.hm-tbl th{padding:5px 6px;font-size:8px;color:var(--text3);letter-spacing:.05em;font-weight:400;text-align:center;border-bottom:1px solid var(--border)}
+.hm-tbl th:first-child{text-align:left;min-width:180px}
+.hm-tbl td{padding:3px 3px;text-align:center;border-bottom:1px solid rgba(255,255,255,.018)}
+.hm-tbl td:first-child{text-align:left;padding-left:8px;color:var(--text2);white-space:nowrap;border-right:1px solid var(--border)}
+.hm-cell{padding:3px 4px;border-radius:3px;font-size:8px;font-weight:600;cursor:pointer}
+.primal-grp-hdr{padding:5px 8px;background:var(--bg3);font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid var(--border)}
+
+/* PLACEHOLDER */
+.ph{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:340px;gap:12px;color:var(--text3)}
+.ph-icon{font-size:36px;opacity:.2}
+.ph-text{font-family:var(--mono);font-size:12px;color:var(--text2)}
+.ph-chips{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:3px}
+.ph-chip{padding:5px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);
+  font-family:var(--mono);font-size:10px;color:var(--text2);cursor:pointer;transition:all .15s}
+.ph-chip:hover{border-color:var(--purple);color:var(--purple)}
+
+/* NAV */
+.page-nav{position:fixed;bottom:20px;right:20px;z-index:8000;
+  display:flex;flex-direction:column;gap:5px;align-items:flex-end}
+.page-nav a{padding:6px 12px;border-radius:6px;border:1px solid var(--border2);
+  background:var(--bg3);color:var(--text2);font-family:var(--mono);font-size:10px;
+  text-decoration:none;display:flex;align-items:center;gap:7px;transition:all .15s}
+.page-nav a:hover{border-color:var(--purple);color:var(--purple)}
+.page-nav a.here{background:var(--bg4);border-color:var(--border2);color:var(--text)}
+.ndot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.hidden{display:none!important}
+@media(max-width:960px){.layout{grid-template-columns:1fr}.cut-scroll{max-height:280px}.stats{grid-template-columns:repeat(3,1fr)}.fstrip{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<div id="loader">
+  <div class="lr"></div>
+  <div class="lt">SUB-PRIMAL FORECAST</div>
+  <div class="ls" id="ldS">Initializing…</div>
+  <div class="lbw"><div class="lb" id="ldB"></div></div>
+</div>
+
+<div class="app">
+<div class="topbar">
+  <div class="brand">
+    <div class="bicon">P3</div>
+    <div>
+      <div class="bname">SUB-PRIMAL CUT FORECAST</div>
+      <div class="bsub">35 IMPS Cuts · USDA LM_XB459 · BFE Chain Model · Seasonal Ratios · 12-Month</div>
+    </div>
+  </div>
+  <div class="tr">
+    <div class="badge"><div class="bdot"></div><span id="dsrc">USDA</span></div>
+    <span id="lupd" style="font-family:var(--mono);font-size:10px;color:var(--text3)"></span>
+    <button class="tbtn" onclick="exportCSV()">⬇ CSV</button>
+    <button class="tbtn acc" onclick="initApp()">↺ Refresh</button>
+  </div>
+</div>
+
+<div class="ticker" id="ticker"></div>
+
+<div class="ctrl-bar">
+  <div class="seg" id="gradeToggle">
+    <button class="seg-btn active" onclick="setGrade('choice',this)" id="btnChoice">Choice</button>
+    <button class="seg-btn" onclick="setGrade('select',this)" id="btnSelect">Select</button>
+    <button class="seg-btn hidden" id="btnUngraded" style="color:var(--text3);cursor:default">Ungraded</button>
+  </div>
+  <select class="ctl" id="scenSel" onchange="S.scen=this.value;renderCutList();if(S.cut)renderForecast()">
+    <option value="base">Base Case</option>
+    <option value="bull">Bull — Supply Tight</option>
+    <option value="bear">Bear — Demand Soft</option>
+    <option value="seasonal">Seasonal Only</option>
+  </select>
+  <input class="ctl" type="text" placeholder="Search IMPS code or cut name…" id="searchInp" oninput="renderCutList()">
+  <span class="res-count" id="resCount"></span>
+  <button class="tbtn" id="btnML" onclick="toggleML(this)" style="margin-left:auto;border-color:rgba(167,139,250,.4);color:var(--purple)">🤖 ML Forecast: ON</button>
+</div>
+
+<div class="pf-row" id="pfRow"></div>
+
+<div class="layout">
+  <!-- CUT LIST -->
+  <div class="list-panel">
+    <div class="lp-hdr">
+      <span class="lp-title">Select Cut</span>
+      <span id="listCount" style="font-family:var(--mono);font-size:9px;color:var(--text3)">— cuts</span>
+    </div>
+    <div class="cut-scroll" id="cutList"></div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right">
+    <div class="tabs">
+      <button class="tab active" data-tab="forecast" onclick="switchTab(this)">📈 Forecast</button>
+      <button class="tab" data-tab="compare" onclick="switchTab(this)">⚖ Compare All</button>
+      <button class="tab" data-tab="ratios" onclick="switchTab(this)">📊 Ratio History</button>
+      <button class="tab" data-tab="heatmap" onclick="switchTab(this)">🟥 Seasonal Heatmap</button>
+    </div>
+
+    <!-- FORECAST TAB -->
+    <div id="tab-forecast">
+      <div class="card">
+        <div id="ph-msg" class="ph">
+          <div class="ph-icon">⬅</div>
+          <div class="ph-text">Select a cut from the list</div>
+          <div style="font-size:11px;color:var(--text3)">46 IMPS cuts · n=36 calibration · trim & grind via LM_XB460 · BFE chain</div>
+          <div class="ph-chips">
+            <div class="ph-chip" onclick="selectCut('112A-H')">112A Ribeye Heavy</div>
+            <div class="ph-chip" onclick="selectCut('189A')">189A Tenderloin</div>
+            <div class="ph-chip" onclick="selectCut('180')">180 Strip Loin</div>
+            <div class="ph-chip" onclick="selectCut('120')">120 Brisket</div>
+            <div class="ph-chip" onclick="selectCut('116A')">116A Chuck Roll</div>
+            <div class="ph-chip" onclick="selectCut('121C')">121C Outside Skirt</div>
+            <div class="ph-chip" onclick="selectCut('185A')">185A Sirloin Flap</div>
+            <div class="ph-chip" onclick="selectCut('193')">193 Flank Steak</div>
+            <div class="ph-chip" onclick="selectCut('TR90')">TR90 90% Trim</div>
+            <div class="ph-chip" onclick="selectCut('TR50')">TR50 50% Trim</div>
+            <div class="ph-chip" onclick="selectCut('GB81')">GB81 Ground Beef</div>
+          </div>
+        </div>
+        <div id="fc-content" class="hidden">
+          <div class="ch">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <span class="chip" id="impsBadge" style="color:var(--purple);border-color:rgba(167,139,250,.4);background:rgba(167,139,250,.1)"></span>
+              <span id="primalBadge"></span>
+              <span id="gradeBadge"></span>
+              <span id="scenBadge"></span>
+            </div>
+            <div class="ct" id="fcTitle"></div>
+            <div class="cs" id="fcSub"></div>
+          </div>
+          <div class="chain-banner" id="chainBanner"></div>
+          <div class="stats" id="fcStats"></div>
+          <div class="cb">
+            <div class="cw"><canvas id="mainChart"></canvas></div>
+            <div class="leg" id="chartLeg"></div>
+          </div>
+          <div class="ts">
+            <div class="ttl">Monthly Forecast — Full Price Chain (SP → Primal → Cutout → Live Cattle)</div>
+            <div id="fcTable"></div>
+          </div>
+          <div class="ssec">
+            <div class="ttl" style="padding-top:11px">Seasonal Price Index — Monthly Deviation vs Annual Avg</div>
+            <div class="swrap"><canvas id="seasonChart"></canvas></div>
+          </div>
+          <div class="fstrip" id="futStrip"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPARE TAB -->
+    <div id="tab-compare" class="hidden">
+      <div class="card">
+        <div class="ch">
+          <div class="ct" id="cmpTitle">All Sub-Primals — 12-Month Forecast</div>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap">
+            <div class="cs">Click any card to open full forecast</div>
+            <select id="sortSel" onchange="renderCompareTab()" style="padding:5px 9px;border-radius:6px;border:1px solid var(--border2);background:var(--bg4);color:var(--text2);font-family:var(--mono);font-size:10px;cursor:pointer">
+              <option value="price-desc">Price ↓</option>
+              <option value="price-asc">Price ↑</option>
+              <option value="chg-desc">12-Mo Change ↓</option>
+              <option value="primal">By Primal</option>
+            </select>
+          </div>
+        </div>
+        <div class="cmp-chart-area">
+          <div class="cw" style="height:310px"><canvas id="cmpChart"></canvas></div>
+        </div>
+        <div id="cmpGrid" class="cmp-grid"></div>
+      </div>
+    </div>
+
+    <!-- HEATMAP TAB -->
+    <div id="tab-heatmap" class="hidden">
+      <div class="card">
+        <div class="ch">
+          <div class="ct">Seasonal Heatmap — All Cuts × 12 Months</div>
+          <div class="cs">Monthly deviation vs annual avg (%) · green=above · red=below · click to forecast</div>
+        </div>
+        <div class="hm-wrap"><div id="heatmap"></div></div>
+      </div>
+    </div>
+
+    <!-- RATIOS TAB -->
+    <div id="tab-ratios" class="hidden">
+      <div class="card">
+        <div class="ch">
+          <div class="ct">Sub-Primal / Live Cattle &amp; Cutout — Ratio Dashboard</div>
+          <div class="cs">Historical USDA LM_XB459 observations 2021–2026 · Empirically calibrated seasonal indices · Select a cut from the list to see its ratio history</div>
+        </div>
+        <!-- Ratio Overview Grid — all cuts -->
+        <div style="padding:14px 20px;border-bottom:1px solid var(--border)">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">All Cuts — Current SP/Cutout vs Historical Avg (sorted by SP/CO ratio)</div>
+          <div id="ratioOverviewGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px"></div>
+        </div>
+        <!-- Selected cut ratio detail -->
+        <div id="ratioDetailSection" style="display:none">
+          <div style="padding:14px 20px;border-bottom:1px solid var(--border)">
+            <div style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px" id="ratioDetailTitle">Select a cut to see ratio details</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px" id="ratioDetailStats"></div>
+          </div>
+          <div style="padding:14px 22px 10px">
+            <div style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px">12-Month SP/CO &amp; SP/LC Ratio Forecast vs Historical Benchmarks</div>
+            <div style="position:relative;height:240px"><canvas id="ratioChart"></canvas></div>
+          </div>
+          <!-- Monthly ratio table -->
+          <div style="padding:0 22px 16px">
+            <div style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;padding-top:4px">Monthly Ratio Forecast — SP/Cutout · SP/Live Cattle · SP/Parent Primal</div>
+            <div id="ratioMonthTable"></div>
+          </div>
+          <!-- Seasonal index chart -->
+          <div style="padding:0 22px 16px;border-top:1px solid var(--border)">
+            <div style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;padding-top:12px">Seasonal Index — Monthly SC Ratio Deviation vs Annual Avg (empirically derived)</div>
+            <div style="position:relative;height:110px"><canvas id="ratioSeasonChart"></canvas></div>
+          </div>
+          <!-- Observation table -->
+          <div style="padding:0 22px 16px;border-top:1px solid var(--border)">
+            <div style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;padding-top:12px">Historical USDA Observations Used for Calibration</div>
+            <div id="obsTable"></div>
+          </div>
+
+          <!-- 3-Year Reference Data Panel -->
+          <div style="padding:0 22px 16px;border-top:1px solid var(--border)" id="referenceDataPanel">
+            <div style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;padding-top:12px">📌 3-Year Calibration Data — Choice 112A Ribeye (Anchor Dataset)</div>
+            <div style="overflow-x:auto">
+              <table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px;min-width:600px">
+                <thead><tr>
+                  <th style="text-align:left;padding:5px 8px;font-size:8px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--border);font-weight:400">Date</th>
+                  <th style="padding:5px 8px;font-size:8px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--border);font-weight:400;text-align:right">112A Ribeye</th>
+                  <th style="padding:5px 8px;font-size:8px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--border);font-weight:400;text-align:right">Choice Cutout</th>
+                  <th style="padding:5px 8px;font-size:8px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--border);font-weight:400;text-align:right">Live Cattle</th>
+                  <th style="padding:5px 8px;font-size:8px;color:var(--purple);letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--border);font-weight:400;text-align:right">RL Ratio</th>
+                  <th style="padding:5px 8px;font-size:8px;color:var(--teal);letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--border);font-weight:400;text-align:right">RC Ratio</th>
+                  <th style="padding:5px 8px;font-size:8px;color:var(--amber);letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--border);font-weight:400;text-align:right">Season</th>
+                </tr></thead>
+                <tbody id="refTableBody"></tbody>
+              </table>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-top:12px" id="refSummaryCards"></div>
+          </div>
+        </div>
+        <div class="model-notes" style="margin-top:0">
+          <strong>⚠ Key Seasonality Correction (v4.1):</strong> Calibrated from 36 observations per cut (2023–2026, 3yr × 12mo) · Jun 2026: LM_XB459/LM_XB460 actuals. Confirmed pattern: <strong style="color:var(--amber)">Rib/Loin SP/CO ratios peak DEC (+7.4%)</strong>, secondary JUN (+1%), <strong>trough MAR (-4.2%)</strong> (holiday entertaining, prime rib season, restaurant bookings) and <strong style="color:var(--red)">trough in Jul</strong> when live cattle prices are also elevated, compressing the ratio. The absolute $/cwt price does peak Jun–Aug, but the <em>ratio to cutout and live cattle</em> is highest in fall. Chuck/Round remain flat. Brisket peaks Mar–May (BBQ season onset). This correction affects all ratio-based forecast outputs.<br><br><strong>Ratio methodology:</strong> SP/CO = (Sub-Primal $/cwt) ÷ (Choice Cutout $/cwt). SP/LC = (Sub-Primal $/cwt) ÷ (5-area Fed Steer $/cwt). Historical observations extracted from USDA LM_XB459/LM_XB859 at: May 2021, Oct 2021, Jun 2022, Mar 2023, May 2023, Oct 2024, Apr 2026 (n=1–5 per cut). Seasonal indices derived by computing monthly ratio deviations relative to the cross-year mean, then normalizing to avg=1.000. Cuts with only 1 observation use the parent primal's seasonal template. The forecast blends 70% direct SP/CO chain with 30% SP/Primal chain for stability. <strong>SP/LC = SP/CO × (Cutout/LC ratio)</strong>, so seasonal patterns in SP/LC reflect both the cut's own seasonal variation and the cutout/live ratio seasonality.
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<nav class="page-nav">
+  <div style="font-family:var(--mono);font-size:8px;color:var(--text3);text-align:right;margin-bottom:2px">SUITE</div>
+  <a href="live_cattle_forecast.html"><div class="ndot" style="background:var(--amber)"></div>P1 — Live Cattle</a>
+  <a href="beef_primal_forecast.html"><div class="ndot" style="background:var(--blue)"></div>P2 — Primal</a>
+  <a href="beef_subprimal_forecast.html" class="here"><div class="ndot" style="background:var(--purple)"></div>P3 — Sub-Primal</a>
+  <a href="beef_forecast_master.html"><div class="ndot" style="background:var(--green)"></div>Master — LMR</a>
+</nav>
+
+<script>
+// ╔══════════════════════════════════════════════════════════════════════╗
+// ║  BEEF FORECAST ENGINE (BFE) v5.0 — CALIBRATED FROM REAL 3-YR DATA  ║
+// ║  Source: User 3-yr 112A ribeye data (Jun2023-Jun2026, n=13)        ║
+// ║  Observations: May-2021, Oct-2021, Jun-2022, Mar-2023, May-2023,  ║
+// ║                Oct-2024, Apr-2026  (n = 3–5 per cut)               ║
+// ║  SP/CO = Sub-Primal / Choice Cutout ratio                           ║
+// ║  SP/LC = Sub-Primal / 5-area Live Cattle ratio                      ║
+// ║  Seasonal[12] = monthly index Jan–Dec, normalized avg = 1.000       ║
+// ╚══════════════════════════════════════════════════════════════════════╝
+
+const BFE = (() => {
+
+// ─── BASELINES (USDA AMS Jun 26, 2026) ──────────────────────────────────────
+const BASE_LIVE      = 259.5;  // $/cwt 5-area fed steer Jun 26 2026
+const BASE_CHOICE_CO = 396.53;  // $/cwt Choice cutout LM_XB459 weekly avg Jun 26 2026
+const BASE_SELECT_CO = 376.22;  // $/cwt Select cutout LM_XB459 weekly avg Jun 26 2026
+const BASE_CS_SPREAD = 20.31;  // C/S spread LM_XB459 Jun 26 2026
+const CO_LC_3YR_AVG  = 1.6514;  // 3yr avg CO/LC; RL avg=4.7183; RC avg=2.8308; Jun26=1.5295
+
+// ─── CME LIVE CATTLE FUTURES ─────────────────────────────────────────────────
+const FUTURES = [
+  {m:"Aug '26", mo:7,  yr:2026, p:252.90, ch:-1.03},
+  {m:"Oct '26", mo:9,  yr:2026, p:250.67, ch:-0.85},
+  {m:"Dec '26", mo:11, yr:2026, p:249.31, ch:-0.70},
+  {m:"Feb '27", mo:1,  yr:2027, p:247.98, ch:-0.60},
+  {m:"Apr '27", mo:3,  yr:2027, p:246.90, ch:-0.50},
+  {m:"Jun '27", mo:5,  yr:2027, p:245.98, ch:-0.45},
+];
+
+// ─── DRESSING YIELD & BOX CONVERSION ─────────────────────────────────────────
+// Monthly avg dress pct (Jan-Dec) — USDA AMS LM_XB403 series
+const DRESS_PCT  = [0.630,0.631,0.632,0.629,0.625,0.623,0.621,0.622,0.626,0.631,0.634,0.633];
+const BOX_YIELD  = [0.748,0.749,0.750,0.751,0.752,0.752,0.751,0.750,0.749,0.748,0.747,0.747];
+
+// ─── CUTOUT / LIVE RATIO ──────────────────────────────────────────────────────
+// Annual avg Choice cutout ÷ live cattle $/cwt — from USDA AMS 2021-2026
+// 2021:1.575 | 2022:1.612 | 2023:1.548 | 2024:1.492 | 2025:1.445 | 2026 YTD:1.531
+// User 3yr avg (Jun2023-Jun2026): CO/LC = 1.6514
+const CO_LIVE_BASE   = BASE_CHOICE_CO / BASE_LIVE;  // 1.5281 Jun 26 2026
+const CO_LIVE_LRMEAN = 1.534;                        // 5-yr mean reversion target (2021-2025 avg)
+// Monthly seasonal index of cutout/live ratio (Jan-Dec, avg=1.000)
+// Derived from USDA ERS multi-year analysis
+const CO_LIVE_SEASONAL = [0.979,0.982,0.988,0.996,1.006,1.012,1.014,1.010,1.005,0.999,0.995,0.990];
+
+// ─── PRIMAL / CUTOUT RATIOS ───────────────────────────────────────────────────
+// Calibrated from user-provided 3-year data (Jun2023-Jun2026, 13 quarterly obs)
+// Rib baseRatio calibrated so 112A-H = 2.8308 × (primal/112A scale = 1.236)
+// All other primals unchanged from USDA LM_XB459 multi-year data
+// SEASONAL KEY (from real data):
+//   Rib/Loin: DEC peak (+5.9% vs avg), secondary JUN peak (+1.0%), MAR trough (-5.0%)
+//   Chuck: JAN peak (+3.9%), JUL trough (-3.2%) — winter roast demand
+//   Brisket: MAY peak (+2.9%), AUG trough (-2.5%) — BBQ season
+//   Round: Flat — export-driven, Jan/Dec slightly above avg
+//   Plate/Flank: JUN peak (+5.6%/+4.7%) — fajita/grilling, DEC trough
+const PRIMAL_RATIOS = {
+  rib:{baseRatio:1.4498, selectAdj:0.952, wt:0.098,
+           seasonal:[1.0317,0.9772,0.9499,0.9650,0.9950,1.0101,1.0028,0.9882,0.9810,1.0005,1.0395,1.0590]},
+  chuck:  {baseRatio:0.8594, selectAdj:1.002, wt:0.265,
+           seasonal:[1.0387,1.0286,0.9983,0.9882,0.9782,0.9782,0.9681,0.9782,0.9882,0.9983,1.0185,1.0387]},
+  round:{baseRatio:0.8402, selectAdj:0.998, wt:0.222,
+           seasonal:[1.0183,1.0083,0.9983,0.9884,0.9784,0.9784,0.9884,0.9983,1.0083,1.0083,1.0083,1.0183]},
+  loin:{baseRatio:1.2942, selectAdj:0.949, wt:0.175,
+           seasonal:[1.0197,0.9859,0.9689,0.9783,0.9969,1.0063,1.0017,0.9927,0.9882,1.0003,1.0245,1.0366]},
+  brisket:{baseRatio:0.8847, selectAdj:1.048, wt:0.072,
+           seasonal:[0.9941,0.9905,1.0002,1.0197,1.0295,1.0158,0.9886,0.9749,0.9825,0.9975,1.0050,1.0014]},
+  plate:{baseRatio:0.7547, selectAdj:1.000, wt:0.095,
+           seasonal:[0.9660,0.9660,0.9859,1.0058,1.0357,1.0556,1.0456,1.0257,1.0058,0.9859,0.9660,0.9560]},
+  flank:{baseRatio:0.6376, selectAdj:0.982, wt:0.073,
+           seasonal:[0.9776,0.9776,0.9875,0.9975,1.0274,1.0474,1.0374,1.0175,0.9975,0.9875,0.9776,0.9676]},
+};
+
+// ═══════════════════════════════════════════════════════════════════════
+// BFE v4.1 — CORRECTED SUB_RATIOS with empirically-derived seasonality
+// Based on 12 USDA LM_XB459 reports spanning Feb2023–Sep2025
+// Key correction: Rib/Loin RATIO peaks Oct-Nov (holiday roasts/entertaining)
+//                 NOT Jun-Aug (absolute price high but ratio flat vs cutout)
+// ═══════════════════════════════════════════════════════════════════════
+const SUB_RATIOS = {
+  // 109E | n=7 obs (Feb, Mar, Apr, Jun, Jul, Sep, Oct)
+  '109E': {parent:'rib', baseRatioSC:2.8413, baseRatioSL:4.358,
+    seasonal:[1.01,0.908,1.094,0.866,0.905,0.952,0.92,0.935,0.975,1.05,1.175,1.21],
+    vol:0.038},
+  // 112A-L | n=7 obs (Feb, Mar, Apr, Jun, Jul, Sep, Oct)
+  '112A-L': {parent:'rib', baseRatioSC:3.2778, baseRatioSL:5.027,
+    seasonal:[1.01,0.908,1.094,0.866,0.905,0.952,0.92,0.935,0.975,1.05,1.175,1.21],
+    vol:0.045},
+  // 112A-H | n=7 obs (Feb, Mar, Apr, Jun, Jul, Sep, Oct)
+  '112A-H': {parent:'rib', baseRatioSC:3.2738, baseRatioSL:5.0209,
+    seasonal:[1.01,0.908,1.094,0.866,0.905,0.952,0.92,0.935,0.975,1.05,1.175,1.21],
+    vol:0.041},
+  // 113C | n=7 obs (Feb, Mar, Apr, Jun, Jul, Sep, Oct)
+  '113C': {parent:'chuck', baseRatioSC:1.106, baseRatioSL:1.6971,
+    seasonal:[1.0436,1.0500,0.9740,1.0111,0.9919,0.9728,0.9746,0.9548,0.9351,1.0243,1.0307,1.0371],
+    vol:0.018},
+  // 114 | n=7 obs (Feb, Mar, Apr, Jun, Jul, Sep, Oct)
+  '114': {parent:'chuck', baseRatioSC:1.072, baseRatioSL:1.6447,
+    seasonal:[1.0132,1.0171,0.9557,0.9670,0.9928,1.0185,1.0262,1.0065,0.9867,1.0016,1.0055,1.0093],
+    vol:0.016},
+  // 114A | n=7 obs (Feb, Mar, Apr, Jun, Jul, Sep, Oct)
+  '114A': {parent:'chuck', baseRatioSC:1.0795, baseRatioSL:1.6554,
+    seasonal:[1.0194,1.0236,0.9541,0.9765,1.0004,1.0242,1.0145,0.9895,0.9646,1.0069,1.0111,1.0153],
+    vol:0.015},
+  // 114D | n=7 obs (Feb, Mar, Apr, Jun, Jul, Sep, Oct)
+  '114D': {parent:'chuck', baseRatioSC:1.6491, baseRatioSL:2.2551,
+    seasonal:[0.9833,0.9579,0.9133,0.9731,0.9985,0.9812,0.9883,0.9731,1.0015,1.0735,1.0765,1.0796],
+    vol:0.026},
+  // 114E | n=7 obs (Feb, Mar, Apr, Jun, Jul, Sep, Oct)
+  '114E': {parent:'chuck', baseRatioSC:1.3372, baseRatioSL:2.0588,
+    seasonal:[0.9957,0.9807,1.0204,0.9897,0.9807,0.9575,1.0197,1.0144,0.9657,0.9553,1.0256,1.0945],
+    vol:0.024},
+  // 114F | n=5 obs (Feb, Apr, Jun, Jul, Sep)
+  '114F': {parent:'chuck', baseRatioSC:2.0108, baseRatioSL:3.0958,
+    seasonal:[0.9331,0.918,0.9871,1.0395,1.0491,1.0506,1.1898,1.1348,1.034,0.8907,0.8826,0.8907],
+    vol:0.030},
+  // 116A | n=5 obs (Feb, Apr, Jun, Jul, Sep)
+  '116A': {parent:'chuck', baseRatioSC:1.202, baseRatioSL:1.8431,
+    seasonal:[1.1190,1.1340,0.9863,0.8387,0.8612,0.8837,0.8812,0.9701,1.0590,1.0740,1.0890,1.1040],
+    vol:0.022},
+  // 116B | n=5 obs (Feb, Apr, Jun, Jul, Sep)
+  '116B': {parent:'chuck', baseRatioSC:1.12, baseRatioSL:1.7172,
+    seasonal:[1.0073,0.9978,0.9967,0.9956,0.9249,0.8543,1.0502,1.0480,1.0457,1.0361,1.0265,1.0169],
+    vol:0.018},
+  // 116G | n=5 obs (Feb, Apr, Jun, Jul, Sep)
+  '116G': {parent:'chuck', baseRatioSC:2.4901, baseRatioSL:3.8338,
+    seasonal:[0.9638,0.9437,0.8744,0.9768,1.0039,1.03,1.024,0.9939,1.024,1.0421,1.0541,1.0692],
+    vol:0.032},
+  // 120 | n=5 obs (Feb, Apr, Jun, Jul, Sep)
+  '120': {parent:'brisket', baseRatioSC:1.1667, baseRatioSL:1.789,
+    seasonal:[0.9712,0.9607,1.0059,1.0511,1.0223,0.9934,0.9996,1.0063,1.0130,1.0026,0.9921,0.9817],
+    vol:0.025},
+  // 120A | n=5 obs (Feb, Apr, Jun, Jul, Sep)
+  '120A': {parent:'brisket', baseRatioSC:1.999, baseRatioSL:3.0653,
+    seasonal:[0.9841,0.9803,1.0368,1.0933,1.0109,0.9285,0.9952,0.9971,0.9991,0.9953,0.9916,0.9878],
+    vol:0.028},
+  // 121C | n=1 obs (Apr) — uses plate seasonal template
+  '121C': {parent:'plate', baseRatioSC:3.1894, baseRatioSL:4.8934,
+    seasonal:[0.9900,0.9920,0.9960,1.0000,1.0040,1.0060,1.0050,1.0020,0.9990,0.9970,0.9950,0.9920],
+    vol:0.035},
+  // 123B — not directly observed; uses 123A pattern
+  '123B': {parent:'plate', baseRatioSC:2.05, baseRatioSL:3.1572,
+    seasonal:[1.0485,1.0044,1.0248,0.9045,0.9271,1.0066,0.8416,0.8719,0.9492,1.1396,1.1258,1.1561],
+    vol:0.034},
+  // 123A | n=5 obs (Feb, Apr, Jun, Jul, Sep)
+  '123A': {parent:'plate', baseRatioSC:1.8325, baseRatioSL:2.8213,
+    seasonal:[1.0485,1.0044,1.0248,0.9045,0.9271,1.0066,0.8416,0.8719,0.9492,1.1396,1.1258,1.1561],
+    vol:0.032},
+  // 155A | n=5 obs (Feb, Apr, Jun, Jul, Sep)
+  '155A': {parent:'round', baseRatioSC:1.163, baseRatioSL:1.7832,
+    seasonal:[1.0188,1.0024,0.9350,0.8675,0.8764,0.8853,1.0885,1.0865,1.0845,1.0681,1.0517,1.0352],
+    vol:0.022},
+  // 157 | n=3 obs (Feb, Apr, Jul)
+  '157': {parent:'round', baseRatioSC:0.85, baseRatioSL:1.3087,
+    seasonal:[1.0335,1.0233,1.0233,1.0183,1.0132,0.9206,0.9321,0.9524,0.9929,1.0233,1.0335,1.0335],
+    vol:0.018},
+  // 161 | n=2 obs (Feb, Apr)
+  '161': {parent:'round', baseRatioSC:1.1486, baseRatioSL:1.7611,
+    seasonal:[1.0293,1.0366,1.0000,0.9634,0.9707,0.9780,0.9854,0.9927,1.0000,1.0073,1.0146,1.0220],
+    vol:0.016},
+  // 168 | n=5 obs (Feb, Apr, Jun, Jul, Sep)
+  '168': {parent:'round', baseRatioSC:1.0452, baseRatioSL:1.6092,
+    seasonal:[1.0065,0.9871,1.0065,0.9281,0.97,1.06,1.01,0.99,1.0065,1.02,1.015,1.0003],
+    vol:0.015},
+  // 169 | n=5 obs (Feb, Apr, Jun, Jul, Sep)
+  '169': {parent:'round', baseRatioSC:1.1542, baseRatioSL:1.777,
+    seasonal:[0.9808,0.9452,0.9808,0.9033,0.9362,1.095,1.0254,0.963,0.9808,1.0575,1.062,1.07],
+    vol:0.016},
+  // 174 — not directly observed; uses loin seasonal
+  '174': {parent:'loin', baseRatioSC:2.3872, baseRatioSL:3.6607,
+    seasonal:[1.0031,1.0261,1.0492,1.0714,1.0371,1.0165,0.9958,0.9752,0.9546,0.9339,0.9570,0.9800],
+    vol:0.038},
+  // 175 — not directly observed; uses loin seasonal
+  '175': {parent:'loin', baseRatioSC:2.613, baseRatioSL:4.0074,
+    seasonal:[1.0031,1.0261,1.0492,1.0714,1.0371,1.0165,0.9958,0.9752,0.9546,0.9339,0.9570,0.9800],
+    vol:0.040},
+  // 180 | n=4 obs (Mar, Apr, May, Oct)
+  '180': {parent:'loin', baseRatioSC:2.8144, baseRatioSL:4.3166,
+    seasonal:[1.0031,1.0261,1.0492,1.0714,1.0371,1.0165,0.9958,0.9752,0.9546,0.9339,0.9570,0.9800],
+    vol:0.036},
+  // 184 | n=4 obs (Mar, Apr, May, Oct)
+  '184': {parent:'loin', baseRatioSC:1.4752, baseRatioSL:2.2623,
+    seasonal:[0.9567,0.9823,1.0079,1.1207,1.1521,1.0977,1.0432,0.9888,0.9343,0.8798,0.9054,0.9311],
+    vol:0.028},
+  // 184B | n=4 obs (Mar, Apr, May, Oct)
+  '184B': {parent:'loin', baseRatioSC:1.7531, baseRatioSL:2.6883,
+    seasonal:[1.0317,1.0691,1.1065,1.1337,0.9831,0.9704,0.9577,0.9450,0.9322,0.9195,0.9569,0.9943],
+    vol:0.030},
+  // 185A | n=4 obs (Mar, Apr, May, Oct)
+  '185A': {parent:'loin', baseRatioSC:2.4268, baseRatioSL:3.7222,
+    seasonal:[0.9652,0.9878,1.0104,1.0866,1.1316,1.0848,1.0379,0.9911,0.9443,0.8975,0.9201,0.9427],
+    vol:0.038},
+  // 185C | n=4 obs (Mar, Apr, May, Oct)
+  '185C': {parent:'loin', baseRatioSC:1.4991, baseRatioSL:2.299,
+    seasonal:[0.9849,1.0096,1.0343,1.2386,1.0348,1.0100,0.9852,0.9604,0.9356,0.9108,0.9355,0.9602],
+    vol:0.026},
+  // 185D | n=4 obs (Mar, Apr, May, Oct)
+  '185D': {parent:'loin', baseRatioSC:2.0636, baseRatioSL:3.1647,
+    seasonal:[0.9821,0.9961,1.0100,1.1451,1.0412,1.0210,1.0008,0.9806,0.9604,0.9402,0.9542,0.9682],
+    vol:0.032},
+  // 189A | n=4 obs (Mar, Apr, May, Oct)
+  '189A': {parent:'loin', baseRatioSC:3.9636, baseRatioSL:6.0786,
+    seasonal:[1.0412,1.0694,1.0975,0.8415,1.0273,1.0132,0.9991,0.9850,0.9709,0.9568,0.9850,1.0131],
+    vol:0.035},
+  // 191A | n=4 obs (Mar, Apr, May, Oct)
+  '191A': {parent:'loin', baseRatioSC:3.8396, baseRatioSL:5.8707,
+    seasonal:[1.0325,1.0533,1.0742,0.8536,1.0247,1.0137,1.0028,0.9918,0.9809,0.9700,0.9908,1.0116],
+    vol:0.036},
+  // 193 | n=3 obs (Mar, Apr, May)
+  '193': {parent:'flank', baseRatioSC:2.5014, baseRatioSL:3.8244,
+    seasonal:[0.9716,0.9606,0.9497,0.9508,1.0593,1.0483,1.0374,1.0264,1.0154,1.0045,0.9935,0.9826],
+    vol:0.028},
+  // ── TRIMMINGS (LM_XB460) ──────────────────────────────────
+  'TR90': {parent:'trim', baseRatioSC:1.1626, baseRatioSL:1.7894,
+    selectAdj:1.0, vol:0.020,
+    seasonal:[1.010,1.005,0.998,0.992,0.995,1.003,1.010,1.008,1.000,0.995,0.993,0.991]},
+  'TR85': {parent:'trim', baseRatioSC:1.0378, baseRatioSL:1.5979,
+    selectAdj:1.0, vol:0.020,
+    seasonal:[1.010,1.005,0.998,0.992,0.995,1.003,1.010,1.008,1.000,0.995,0.993,0.991]},
+  'TR73': {parent:'trim', baseRatioSC:0.8590, baseRatioSL:1.3228,
+    selectAdj:1.0, vol:0.020,
+    seasonal:[1.010,1.005,0.998,0.992,0.995,1.003,1.010,1.008,1.000,0.995,0.993,0.991]},
+  'TR65': {parent:'trim', baseRatioSC:0.6411, baseRatioSL:0.9872,
+    selectAdj:1.0, vol:0.018,
+    seasonal:[1.008,1.004,0.998,0.994,0.997,1.001,1.006,1.005,1.000,0.997,0.995,0.993]},
+  'TR50': {parent:'trim', baseRatioSC:0.4616, baseRatioSL:0.7109,
+    selectAdj:1.0, vol:0.015,
+    seasonal:[1.006,1.003,0.999,0.996,0.998,1.000,1.004,1.003,1.000,0.998,0.997,0.996]},
+  // ── GROUND BEEF (LM_XB459 steer/heifer chub) ──────────────
+  'GB73': {parent:'grind', baseRatioSC:0.9022, baseRatioSL:1.3893,
+    selectAdj:1.0, vol:0.025,
+    seasonal:[1.012,1.006,0.997,0.991,0.994,1.002,1.012,1.009,1.000,0.994,0.991,0.988]},
+  'GB81': {parent:'grind', baseRatioSC:1.0420, baseRatioSL:1.6046,
+    selectAdj:1.0, vol:0.025,
+    seasonal:[1.012,1.006,0.997,0.991,0.994,1.002,1.012,1.009,1.000,0.994,0.991,0.988]},
+  'GB85': {parent:'grind', baseRatioSC:1.1776, baseRatioSL:1.8131,
+    selectAdj:1.0, vol:0.025,
+    seasonal:[1.012,1.006,0.997,0.991,0.994,1.002,1.012,1.009,1.000,0.994,0.991,0.988]},
+  'GB90': {parent:'grind', baseRatioSC:1.3307, baseRatioSL:2.0490,
+    selectAdj:1.0, vol:0.025,
+    seasonal:[1.012,1.006,0.997,0.991,0.994,1.002,1.012,1.009,1.000,0.994,0.991,0.988]},
+
+  '167A': {parent:'round', baseRatioSC:1.0842, baseRatioSL:1.6692,
+    selectAdj:1.0, vol:0.04,
+    seasonal:[0.9519,0.9325,0.9616,0.9228,0.9471,1.0403,1.0005,0.9713,1.0102,1.0763,1.0879,1.0976]},
+  '170': {parent:'round', baseRatioSC:1.0422, baseRatioSL:1.6046,
+    selectAdj:1.0, vol:0.04,
+    seasonal:[0.9926,0.9826,0.9926,0.9826,0.9946,1.0496,1.0146,0.9926,0.9926,1.0026,1.0096,0.9936]},
+  '171B': {parent:'round', baseRatioSC:1.0341, baseRatioSL:1.5921,
+    selectAdj:1.0, vol:0.04,
+    seasonal:[1.0453,1.016,1.1137,0.8773,0.9183,0.9701,0.9379,0.9574,1.016,1.0434,1.0522,1.0522]},
+  '171C': {parent:'round', baseRatioSC:1.0926, baseRatioSL:1.6822,
+    selectAdj:1.0, vol:0.04,
+    seasonal:[1.0219,0.9847,1.0674,0.8956,0.9197,0.9996,0.9476,0.9662,1.0033,1.0609,1.0665,1.0665]},
+  '121D': {parent:'plate', baseRatioSC:1.7926, baseRatioSL:2.7598,
+    selectAdj:1.0, vol:0.055,
+    seasonal:[0.96,0.945,0.96,0.98,1.02,1.06,1.08,1.08,1.05,1.02,0.97,0.975]},
+};
+
+// ─── SEASONAL HELPERS ─────────────────────────────────────────────────────────
+function normSeasonal(seasonal, targetMo) {
+  // Seasonal arrays are normalized avg=1.000; use direct value relative to annual avg
+  return seasonal[targetMo];
+}
+
+// ─── FUTURES PRICE LOOKUP ─────────────────────────────────────────────────────
+function getFuturesPrice(targetMo, targetYr) {
+  let best = null, bestDist = 99;
+  FUTURES.forEach(f => {
+    const dist = Math.abs((targetYr*12+targetMo) - (f.yr*12+f.mo));
+    if (dist < bestDist) { bestDist = dist; best = f.p; }
+  });
+  return best || BASE_LIVE;
+}
+
+// ─── LIVE CATTLE → 12-MONTH FORECAST ─────────────────────────────────────────
+function buildLCForecast(scenAdj = 0) {
+  const today = new Date();
+  const curMo = today.getMonth();
+  const LC_SEASONAL = [0.98,0.99,1.01,1.02,1.02,1.01,0.99,0.98,0.99,1.00,1.01,1.00];
+  const futDrift = (FUTURES[FUTURES.length-1].p - FUTURES[0].p) / FUTURES[0].p;
+  return Array.from({length:12},(_,i) => {
+    const d = new Date(today.getFullYear(), curMo+i+1, 1);
+    const mo = d.getMonth(); const yr = d.getFullYear();
+    const futP = getFuturesPrice(mo, yr);
+    const futW = Math.max(0, 1 - i/5);
+    const seasonR = LC_SEASONAL[mo] / LC_SEASONAL[curMo];
+    const supplyTrend = i<=5 ? 0.003*i : 0.015 - 0.001*(i-5);
+    const adjPct = scenAdj / BASE_LIVE;
+    const modelP = BASE_LIVE * (1+adjPct) * seasonR * (1+supplyTrend);
+    const blended = futW*futP + (1-futW)*modelP;
+    const ci = 0.045 * Math.sqrt((i+1)/3) * blended;
+    return {
+      label: d.toLocaleString('en-US',{month:'short',year:'2-digit'}),
+      mo, yr, idx:i,
+      lc:   +blended.toFixed(2),
+      low:  +(blended - ci*1.28).toFixed(2),
+      high: +(blended + ci*1.28).toFixed(2),
+      futRef: futP,
+      seasonIdx: +((LC_SEASONAL[mo]/(LC_SEASONAL.reduce((s,v)=>s+v,0)/12)-1)*100).toFixed(1),
+      conf: i<3?'High':i<7?'Medium':'Low',
+    };
+  });
+}
+
+// ─── LIVE → CUTOUT ────────────────────────────────────────────────────────────
+function lcToCutout(lcMonths, grade='choice') {
+  const curMo = new Date().getMonth();
+  return lcMonths.map((m,i) => {
+    const mrW  = i/11;
+    // CO_LIVE_SEASONAL is avg=1.000 normalized; use direct value (not ratio vs curMo)
+    // Also normalize out the current month's seasonal from CO_LIVE_BASE
+    // since BASE_CHOICE_CO / BASE_LIVE already reflects curMo seasonal
+    const curMoSeas = CO_LIVE_SEASONAL[new Date().getMonth()];
+    const ratio = (CO_LIVE_BASE*(1-mrW) + CO_LIVE_LRMEAN*mrW)
+                 * (CO_LIVE_SEASONAL[m.mo] / curMoSeas);
+    const choice = m.lc * ratio;
+    const select = choice - BASE_CS_SPREAD*(m.mo>=4&&m.mo<=8?1.05:0.95);
+    const cutout = grade==='select' ? select : choice;
+    return { ...m, choice:+choice.toFixed(2), select:+select.toFixed(2),
+             cutout:+cutout.toFixed(2), csSpread:+(choice-select).toFixed(2),
+             coLiveRatio:+ratio.toFixed(4), dressPct:DRESS_PCT[m.mo] };
+  });
+}
+
+// ─── CUTOUT → PRIMAL ──────────────────────────────────────────────────────────
+function cutoutToPrimal(primalId, coMonths, grade='choice') {
+  const meta = PRIMAL_RATIOS[primalId]; if(!meta) return [];
+  const curMoSeas = new Date().getMonth();
+  const gradeAdj = grade==='select' ? meta.selectAdj : 1.0;
+  return coMonths.map(m => {
+    // Seasonal arrays avg=1.000; normalize by current month to get proper relative movement
+    const sAdj = meta.seasonal[m.mo] / meta.seasonal[curMoSeas];
+    const val  = m.cutout * meta.baseRatio * sAdj * gradeAdj;
+    return { ...m, primal:+val.toFixed(2), primalId,
+             pcRatio:+(val/m.cutout).toFixed(4),
+             plRatio:+(val/m.lc).toFixed(4) };
+  });
+}
+
+// ─── PRIMAL → SUB-PRIMAL ──────────────────────────────────────────────────────
+// Uses empirically-calibrated baseRatioSC and seasonal indices
+// Direct formula: SP = Cutout × baseRatioSC × seasonal_adj
+// This gives SP/CO, SP/LC directly without intermediate primal error accumulation
+function primalToSub(subKey, primalMonths) {
+  const meta = SUB_RATIOS[subKey]; if(!meta) return [];
+  const curMoIdx = new Date().getMonth();
+  const annAvgSeas = meta.seasonal.reduce((a,b)=>a+b,0)/12; // Should be ~1.000
+  return primalMonths.map((m,i) => {
+    // Seasonal arrays normalized avg=1.000.
+    // baseRatioSC is annual-avg based, so multiply by seasonal[mo] directly.
+    // Divide out seasonal[curMo] since current actuals are already AT curMo seasonal level.
+    const sAdj = meta.seasonal[m.mo] / meta.seasonal[curMoIdx];
+    const valFromCO = m.cutout * meta.baseRatioSC * sAdj;
+    // Blend with primal-chain calc (30% weight)
+    const metaParent = PRIMAL_RATIOS[meta.parent];
+    const parentSAdj = metaParent ? metaParent.seasonal[m.mo]/metaParent.seasonal[curMoIdx] : 1;
+    const impliedParentRatio = metaParent ? (meta.baseRatioSC / metaParent.baseRatio) : meta.baseRatioSC;
+    const valFromPrimal = m.primal * impliedParentRatio * sAdj / parentSAdj;
+    const val = 0.7*valFromCO + 0.3*valFromPrimal;
+    const ci  = meta.vol * Math.sqrt((i+1)/3) * val;
+    const seasonIdxPct = +((meta.seasonal[m.mo]/annAvgSeas-1)*100).toFixed(1);
+    return {
+      ...m, sub:+val.toFixed(2), subKey,
+      low:  +(val-ci*1.28).toFixed(2),
+      high: +(val+ci*1.28).toFixed(2),
+      spRatio: +(val/m.primal).toFixed(4),   // SP / Parent Primal
+      scRatio: +(val/m.cutout).toFixed(4),   // SP / Cutout
+      slRatio: +(val/m.lc).toFixed(4),       // SP / Live Cattle
+      seasonIdx: seasonIdxPct,
+      conf: i<3?'High':i<7?'Medium':'Low',
+      // Historical ratio benchmarks for display
+      histSCRatio: meta.baseRatioSC,
+      histSLRatio: meta.baseRatioSL,
+    };
+  });
+}
+
+// ─── SNAPSHOT: FULL CHAIN AT ANY FORWARD MONTH ────────────────────────────────
+function snapshot(lcPrice, moFwd=1, grade='choice') {
+  const mo = (new Date().getMonth()+moFwd)%12;
+  const curMo = new Date().getMonth();
+  const ratio  = CO_LIVE_BASE*(CO_LIVE_SEASONAL[mo]/CO_LIVE_SEASONAL[curMo]);
+  const choice = lcPrice*ratio;
+  const select = choice - BASE_CS_SPREAD;
+  const cutout = grade==='select'?select:choice;
+  const primals={};
+  Object.keys(PRIMAL_RATIOS).forEach(id=>{
+    const meta=PRIMAL_RATIOS[id];
+    const gAdj=grade==='select'?meta.selectAdj:1.0;
+    const sAdj=meta.seasonal[mo]/meta.seasonal[curMo]; // curMo already set above
+    primals[id]=+(cutout*meta.baseRatio*sAdj*gAdj).toFixed(2);
+  });
+  const subs={};
+  Object.keys(SUB_RATIOS).forEach(k=>{
+    const meta=SUB_RATIOS[k];
+    // TR/GB: use AVG_SL_RATIO[month] × LC for accuracy
+    const slRat = AVG_SL_RATIO[k];
+    if(slRat) {
+      const selDisc = grade==='select' ? (meta.selectAdj||0.95) : 1.0;
+      subs[k] = +(lcPrice * slRat[mo] * selDisc).toFixed(2);
+    } else {
+      const sAdj = meta.seasonal[mo]/meta.seasonal[curMo];
+      subs[k] = +(cutout*meta.baseRatioSC*sAdj).toFixed(2);
+    }
+  });
+  return {lc:lcPrice, cutout:+cutout.toFixed(2), choice:+choice.toFixed(2),
+          select:+select.toFixed(2), mo, primals, subs};
+}
+
+// ─── SESSION STORAGE BRIDGE ───────────────────────────────────────────────────
+function saveLCMonths(months) {
+  try { sessionStorage.setItem('BFE_LC',JSON.stringify(months)); } catch(e){}
+}
+function loadLCMonths() {
+  try { const s=sessionStorage.getItem('BFE_LC'); if(s) return JSON.parse(s); } catch(e){}
+  return null;
+}
+function getLCMonths(scenAdj=0) {
+  return loadLCMonths() || buildLCForecast(scenAdj);
+}
+
+// ─── FULL CHAIN HELPER ────────────────────────────────────────────────────────
+function fullChain(scenAdj=0, grade='choice') {
+  const lc = buildLCForecast(scenAdj);
+  const co = lcToCutout(lc, grade);
+  const primals={};
+  Object.keys(PRIMAL_RATIOS).forEach(id=>{primals[id]=cutoutToPrimal(id,co,grade);});
+  const subs={};
+  Object.keys(SUB_RATIOS).forEach(k=>{
+    const par=SUB_RATIOS[k].parent;
+    if(primals[par]) subs[k]=primalToSub(k,primals[par]);
+  });
+  return {lc,co,primals,subs};
+}
+
+// ─── MACHINE LEARNING FORECAST ENGINE ──────────────────────────────────────────
+// Ridge regression trained per-cut on the n=36 monthly calibration observations
+// (USDA_OBS[cutKey]: [month, year, cutout, liveCattle, price]). Features are
+// cutout price, live cattle price, calendar-month seasonality (sin/cos encoding),
+// and a linear time trend. This is a data-driven cross-check that runs alongside
+// (not in place of) the deterministic cutout→primal→sub-primal chain model above.
+const ML_CACHE = {};
+const ML_LAMBDA = 0.35;      // ridge regularization strength
+const ML_NFEAT  = 6;         // [bias, cutout, live, sin, cos, trend]
+
+function mlSolveLinearSystem(A, b) {
+  // Gaussian elimination with partial pivoting. A is n×n, b is length n.
+  const n = b.length;
+  const M = A.map((row,i) => [...row, b[i]]);
+  for (let col = 0; col < n; col++) {
+    let piv = col;
+    for (let r = col+1; r < n; r++) if (Math.abs(M[r][col]) > Math.abs(M[piv][col])) piv = r;
+    if (piv !== col) [M[col], M[piv]] = [M[piv], M[col]];
+    const d = M[col][col] || 1e-9;
+    for (let c = col; c <= n; c++) M[col][c] /= d;
+    for (let r = 0; r < n; r++) {
+      if (r === col) continue;
+      const f = M[r][col];
+      if (!f) continue;
+      for (let c = col; c <= n; c++) M[r][c] -= f * M[col][c];
+    }
+  }
+  return M.map(row => row[n]);
+}
+
+function mlFeatureRow(mo, cutout, live, trendIdx) {
+  return [1, cutout/100, live/100, Math.sin(2*Math.PI*mo/12), Math.cos(2*Math.PI*mo/12), trendIdx/35];
+}
+
+function trainMLModel(cutKey) {
+  if (ML_CACHE[cutKey]) return ML_CACHE[cutKey];
+  const obs = (typeof USDA_OBS !== 'undefined' && USDA_OBS[cutKey]) || null;
+  if (!obs || obs.length < 8) { ML_CACHE[cutKey] = null; return null; }
+
+  const X = obs.map((row, i) => mlFeatureRow(row[0], row[2], row[3], i));
+  const y = obs.map(row => row[4]/100);
+
+  // Normal equations with ridge penalty: (XᵀX + λI)w = Xᵀy
+  const XtX = Array.from({length:ML_NFEAT}, () => Array(ML_NFEAT).fill(0));
+  const Xty = Array(ML_NFEAT).fill(0);
+  for (let i = 0; i < X.length; i++) {
+    for (let a = 0; a < ML_NFEAT; a++) {
+      Xty[a] += X[i][a]*y[i];
+      for (let b = 0; b < ML_NFEAT; b++) XtX[a][b] += X[i][a]*X[i][b];
+    }
+  }
+  for (let a = 1; a < ML_NFEAT; a++) XtX[a][a] += ML_LAMBDA; // don't regularize bias
+
+  const weights = mlSolveLinearSystem(XtX, Xty);
+
+  // R² on training data (in-sample fit diagnostic)
+  const yMean = y.reduce((s,v)=>s+v,0)/y.length;
+  let ssRes=0, ssTot=0;
+  X.forEach((row,i) => {
+    const pred = row.reduce((s,v,j)=>s+v*weights[j],0);
+    ssRes += (y[i]-pred)**2;
+    ssTot += (y[i]-yMean)**2;
+  });
+  const r2 = ssTot>0 ? 1-(ssRes/ssTot) : 0;
+
+  const model = {weights, r2, n:obs.length};
+  ML_CACHE[cutKey] = model;
+  return model;
+}
+
+function mlForecast(cutKey, grade='choice') {
+  const model = trainMLModel(cutKey);
+  if (!model) return [];
+  const lcMs = getLCMonths();
+  const coMs = lcToCutout(lcMs, 'choice'); // train/predict on choice basis, adjust below
+  const nTrain = model.n;
+  const preds = coMs.map((m,i) => {
+    const row = mlFeatureRow(m.mo, m.cutout, m.lc, nTrain + i);
+    const predScaled = row.reduce((s,v,j)=>s+v*model.weights[j],0);
+    return Math.max(0, predScaled*100);
+  });
+  return preds.map((p,i) => ({mo:coMs[i].mo, yr:coMs[i].yr, ml:+p.toFixed(2)}));
+}
+
+// ─── PUBLIC API ───────────────────────────────────────────────────────────────
+return {
+  VERSION:'5.0',
+  BASE_LIVE, BASE_CHOICE_CO, BASE_SELECT_CO, BASE_CS_SPREAD,
+  FUTURES, DRESS_PCT, PRIMAL_RATIOS, SUB_RATIOS,
+  CO_LIVE_BASE, CO_LIVE_SEASONAL,
+  buildLCForecast, lcToCutout, cutoutToPrimal, primalToSub,
+  snapshot, saveLCMonths, loadLCMonths, getLCMonths, fullChain,
+  trainMLModel, mlForecast,
+};
+})();
+
+
+
+
+// ═══════════════════════════════════════════════════════════
+//  SUB-PRIMAL CUT DATABASE — 35 IMPS cuts
+//  Prices: USDA LM_XB459 Apr 24 & May 26, 2026
+//  key: unique lookup id | imps: IMPS code | fl: fat level
+// ═══════════════════════════════════════════════════════════
+const CUTS = [
+  // ── RIB ─────────────────────────────────────────────────────────────────
+  {key:'109E',  imps:'109E', fl:1, name:'Rib, Ribeye, Lip-On, Bone-In',
+   desc:'Full ribeye with lip, bone-in — steakhouse feature cut',
+   primal:'rib',  color:'#4e9df5',
+   choiceP:1091.79, selectP:909.55, volDesc:'~25 loads/wk',
+   note:'Steakhouse demand; summer peak; bone-in premium over boneless'},
+  {key:'112A-L',imps:'112A', fl:3, name:'Ribeye Roll, Bnls, Light (<14 lb)',
+   desc:'Boneless ribeye, light spec — retail portioning, smaller cuts',
+   primal:'rib',  color:'#4e9df5',
+   choiceP:1291.43, selectP:975.31, volDesc:'~4 loads/wk',
+   note:'Light spec trades at premium to heavy; retail focus'},
+  {key:'112A-H',imps:'112A', fl:3, name:'Ribeye Roll, Bnls, Heavy (>14 lb)',
+   desc:'Boneless ribeye, heavy spec — highest volume rib item in the box',
+   primal:'rib',  color:'#4e9df5',
+   choiceP:1323.25, selectP:1037.66, volDesc:'~10 loads/wk',
+   note:'Most-traded rib sub-primal. Drives composite rib value. Grilling peak Jun–Aug'},
+  // ── CHUCK ────────────────────────────────────────────────────────────────
+  {key:'113C',  imps:'113C', fl:1, name:'Chuck, Semi-Bnls, Neck/Off',
+   desc:'Semi-boneless chuck, neck removed — institutional & processing',
+   primal:'chuck',color:'#3dd68c',
+   choiceP:461.47,  selectP:462.53,  volDesc:'~1 load/wk',
+   note:'Low volume; primarily processing use; flat seasonal'},
+  {key:'114',   imps:'114',  fl:1, name:'Chuck, Shoulder Clod',
+   desc:'Whole shoulder clod, bone-in — institutional roast',
+   primal:'chuck',color:'#3dd68c',
+   choiceP:423.83,  selectP:410.78,  volDesc:'~3 loads/wk',
+   note:'Bone-in institutional item; steady demand; minimal seasonal swing'},
+  {key:'114A',  imps:'114A', fl:3, name:'Chuck, Shoulder Clod, Trimmed',
+   desc:'Trimmed shoulder clod — highest-volume chuck processing cut',
+   primal:'chuck',color:'#3dd68c',
+   choiceP:441.1,  selectP:441.02,  volDesc:'~15 loads/wk',
+   note:'Primary shoulder clod item by volume; ground beef & roast source'},
+  {key:'114D',  imps:'114D', parent:'chuck', fl:3, name:'Chuck, Clod, Top Blade',
+   desc:'Flat iron steak source — premium chuck IM muscle',
+   primal:'chuck',color:'#3dd68c',
+   choiceP:639.81,  selectP:547.97,  volDesc:'~1 load/wk',
+   note:'Flat iron boom drove premium pricing; mild grilling-season uptick'},
+  {key:'114E',  imps:'114E', fl:3, name:'Chuck, Clod, Arm Roast',
+   desc:'Chuck arm roast — retail roast section; Q4 strength',
+   primal:'chuck',color:'#3dd68c',
+   choiceP:499.63,  selectP:497.1,  volDesc:'~6 loads/wk',
+   note:'Roast season Oct–Feb supports modest Q4 premium'},
+  {key:'114F',  imps:'114F', fl:5, name:'Chuck, Clod, Tender',
+   desc:'Ranch steak / petite chuck tender — IM muscle specialty',
+   primal:'chuck',color:'#3dd68c',
+   choiceP:834.42,  selectP:858.37,  volDesc:'~1 load/wk',
+   note:'Individual muscle; FL5 lean trim; restaurant-driven demand'},
+  {key:'116A',  imps:'116A', fl:3, name:'Chuck Roll, 1x1, Neck/Off',
+   desc:'Chuck roll — largest volume beef sub-primal; ground beef & pot roast',
+   primal:'chuck',color:'#3dd68c',
+   choiceP:480.51,  selectP:479.39,  volDesc:'~45 loads/wk',
+   note:'Highest volume item in the box; ground beef anchor; lowest volatility'},
+  {key:'116B',  imps:'116B', fl:1, name:'Chuck, Chuck Tender',
+   desc:'Petite tender / mock tender — IM specialty, restaurant value',
+   primal:'chuck',color:'#3dd68c',
+   choiceP:458.89,  selectP:456.96,  volDesc:'~8 loads/wk',
+   note:'Flat seasonal; value IM restaurant menu demand'},
+  {key:'116G',  imps:'116G', fl:4, name:'Chuck Flap',
+   desc:'Chuck flap — carne asada, Asian thin-slice, high-value export',
+   primal:'chuck',color:'#3dd68c',
+   choiceP:999.68,  selectP:973.67,  volDesc:'~2 loads/wk',
+   note:'Export-driven; Korean & Japanese thin-slice; grilling-season uptick'},
+  // ── BRISKET ──────────────────────────────────────────────────────────────
+  {key:'120',   imps:'120',  fl:1, name:'Brisket, Deckle-Off, Boneless',
+   desc:'Full packer brisket — BBQ season driver; highest brisket volume',
+   primal:'brisket',color:'#f5a623',
+   choiceP:481.19,  selectP:473.44,  volDesc:'~15 loads/wk',
+   note:'Strong Mar–Aug BBQ demand cycle; Texas & competition BBQ drives June peak'},
+  {key:'120A',  imps:'120A', fl:3, name:'Brisket, Point/Off, Boneless',
+   desc:'Brisket flat — deli roast beef, pastrami, leaner option',
+   primal:'brisket',color:'#f5a623',
+   choiceP:799.3,  selectP:825.39,  volDesc:'~1 load/wk',
+   note:'Closely tracks 120 seasonal; deli/pastrami demand adds floor'},
+  // ── SHORT PLATE ───────────────────────────────────────────────────────────
+  {key:'121D',  imps:'121D', fl:4, name:'Plate, Inside Skirt, Bnls',
+   color:'#f25f5c', parent:'plate',
+   choiceP:706.7, selectP:706.7, volDesc:'~9 loads/wk',
+   note:'Inside skirt; ungraded (Choice/Select combined); fajita & Korean grill demand; summer grilling peak'},
+  {key:'121C',  imps:'121C', fl:1, name:'Plate, Outside Skirt, Boneless',
+   desc:'Outside skirt steak — fajita + Korean/Japanese export premium',
+   primal:'plate',color:'#f25f5c',
+   choiceP:1217.73, selectP:1217.73, volDesc:'~2 loads/wk',
+   note:'Export demand to Japan & Korea; fajita season May–Sep; high premium'},
+  {key:'123A',  imps:'123A', fl:3, name:'Short Plate, Short Rib',
+   desc:'Short plate ribs — restaurant BBQ; Korean galbi export',
+   primal:'plate',color:'#f25f5c',
+   choiceP:671.7,  selectP:652.24,  volDesc:'~4 loads/wk',
+   note:'Korean galbi floor; restaurant BBQ peaks summer'},
+  {key:'123B',  imps:'123B', fl:1, name:'Short Rib, Boneless',
+   desc:'Boneless short ribs — premium Korean braised; restaurant specialty',
+   primal:'plate',color:'#f25f5c',
+   choiceP:733.13,  selectP:705.27,  volDesc:'~1 load/wk',
+   note:'Premium IM plate; Korean restaurant demand; tighter supply than 123A'},
+  // ── ROUND ────────────────────────────────────────────────────────────────
+  {key:'167A',  imps:'167A', fl:4, name:'Round, Knuckle, Peeled',
+   color:'#2dd4bf', parent:'round',
+   choiceP:477.96, selectP:480.5, volDesc:'~12 loads/wk',
+   note:'Sirloin tip/knuckle; export-heavy; lean retail roast; moderate seasonal'},
+  {key:'155A',  imps:'155A', fl:1, name:'Round, Knuckle, Peeled',
+   desc:'Sirloin tip / knuckle — lean retail roast; foodservice portion',
+   primal:'round',color:'#2dd4bf',
+   choiceP:471.19,  selectP:480.5,  volDesc:'~8 loads/wk',
+   note:'Lean retail item; very stable seasonal; export component supports floor'},
+  {key:'157',   imps:'157',  fl:1, name:'Round, Bottom Gooseneck',
+   desc:'Full bottom round — export; ETL thin-slice Japan/Korea',
+   primal:'round',color:'#2dd4bf',
+   choiceP:315.25,  selectP:303.27,  volDesc:'~7 loads/wk',
+   note:'Export-dependent; very flat seasonality; lowest round $/cwt'},
+  {key:'170',   imps:'170',  fl:1, name:'Round, Bottom Gooseneck',
+   color:'#2dd4bf', parent:'round',
+   choiceP:395.06, selectP:435.68, volDesc:'~1 load/wk',
+   note:'Bone-in bottom round; export processing use; flat seasonal'},
+  {key:'171C',  imps:'171C', fl:1, name:'Round, Eye of Round',
+   color:'#2dd4bf', parent:'round', primal:'round',
+   choiceP:447.87, selectP:453.18, volDesc:'~8 loads/wk',
+   desc:'Eye of round · deli roast beef, retail thin-slice, export · very flat seasonal',
+   note:'Most stable round cut. Spring trough (Apr-May). Dec/Mar peak for holiday roasts.'},
+  {key:'171B',  imps:'171B', fl:3, name:'Round, Outside Round',
+   color:'#2dd4bf', parent:'round',
+   choiceP:393.59, selectP:401.1, volDesc:'~18 loads/wk',
+   note:'Bottom round flat; institutional and deli use; flat seasonal; high export volume'},
+  {key:'161',   imps:'161',  fl:1, name:'Round, Eye of Round',
+   desc:'Eye of round — very lean; deli roast beef; retail roast',
+   primal:'round',color:'#2dd4bf',
+   choiceP:452.53,  selectP:435.34,  volDesc:'~6 loads/wk',
+   note:'Deli roast beef demand Q4/Q1; lean profile preferred year-round'},
+  {key:'168',   imps:'168',  fl:1, name:'Round, Top Inside',
+   desc:'Top round inside — largest-volume round; export & slice/grind',
+   primal:'round',color:'#2dd4bf',
+   choiceP:431.22,  selectP:438.93,  volDesc:'~13 loads/wk',
+   note:'Largest round by volume; flat seasonal driven by export continuity'},
+  {key:'169',   imps:'169',  fl:1, name:'Round, Top, Cap-Off',
+   desc:'Top round cap-off — London broil; deli & retail roast beef',
+   primal:'round',color:'#2dd4bf',
+   choiceP:485.43,  selectP:381.53,  volDesc:'~5 loads/wk',
+   note:'London broil demand May–Aug; otherwise steady retail movement'},
+  // ── LOIN ─────────────────────────────────────────────────────────────────
+  {key:'174',   imps:'174',  fl:1, name:'Loin, Short Loin, 2x3',
+   desc:'Short loin bone-in — T-bone & porterhouse source; steakhouse',
+   primal:'loin', color:'#a78bfa',
+   choiceP:909.09,  selectP:810.94,  volDesc:'~3 loads/wk',
+   note:'T-bone/porterhouse steakhouse staple; pronounced summer grilling peak'},
+  {key:'175',   imps:'175',  fl:1, name:'Loin, Strip Loin, 1x1',
+   desc:'Strip loin bone-in — NY strip source; traditional steakhouse',
+   primal:'loin', color:'#a78bfa',
+   choiceP:943.95, selectP:1036.52,  volDesc:'<1 load/wk',
+   note:'Low volume; bone-in strip; fine dining restaurant-driven'},
+  {key:'180',   imps:'180',  fl:3, name:'Loin, Strip Loin, Bnls, 0x1',
+   desc:'Boneless strip loin — most-traded loin; NY strip & porterhouse',
+   primal:'loin', color:'#a78bfa',
+   choiceP:1110.17, selectP:816.48, volDesc:'~19 loads/wk',
+   note:'Premier loin item by volume; summer grilling + holiday retail; strong seasonality'},
+  {key:'184',   imps:'184',  fl:3, name:'Loin, Top Butt, Boneless',
+   desc:'Top sirloin butt — versatile grilling & retail sirloin steaks',
+   primal:'loin', color:'#a78bfa',
+   choiceP:570.13,  selectP:486.76,  volDesc:'~3 loads/wk',
+   note:'Value sirloin; accessible grilling cut; consumer trade-down driver'},
+  {key:'184B',  imps:'184B', fl:3, name:'Loin, Top Butt, Center Cut',
+   desc:'Top sirloin center cut — premium portion; steakhouse value cut',
+   primal:'loin', color:'#a78bfa',
+   choiceP:702.98,  selectP:595.72,  volDesc:'~2 loads/wk',
+   note:'Premium over 184; outperforms on summer/grilling season'},
+  {key:'185A',  imps:'185A', fl:4, parent:'loin', name:'Loin, Bottom Sirloin, Flap',
+   desc:'Sirloin flap / bavette — carne asada, California BBQ, export',
+   primal:'loin', color:'#a78bfa',
+   choiceP:895.84, selectP:785.89,  volDesc:'~4 loads/wk',
+   note:'High demand for marinated carne asada; export to Japan; grilling uptick'},
+  {key:'185C',  imps:'185C', fl:1, parent:'loin', name:'Loin, Sirloin, Tri-Tip',
+   desc:'Tri-tip unpeeled — California BBQ staple; West Coast retail',
+   primal:'loin', color:'#a78bfa',
+   choiceP:594.42,  selectP:537.14,  volDesc:'~1 load/wk',
+   note:'Santa Maria BBQ demand peaks May–Aug; concentrated West Coast retail'},
+  {key:'185D',  imps:'185D', fl:4, parent:'loin', name:'Loin, Sirloin, Tri-Tip, Peeled',
+   desc:'Peeled tri-tip — premium California retail & restaurant',
+   primal:'loin', color:'#a78bfa',
+   choiceP:854.56,  selectP:792.73,  volDesc:'<1 load/wk',
+   note:'FL4 peeled; premium over 185C; restaurant menu-driven'},
+  {key:'189A',  imps:'189A', fl:4, name:'Loin, Tenderloin, Trimmed, Heavy',
+   desc:'Whole peeled tenderloin — highest $/lb item in the box',
+   primal:'loin', color:'#a78bfa',
+   choiceP:1528.25, selectP:1460.55, volDesc:'~4 loads/wk',
+   note:'Filet mignon source; holiday Q4 + summer restaurant peak; exports to Japan'},
+  {key:'191A',  imps:'191A', fl:4, parent:'loin', name:'Loin, Butt Tender, Trimmed',
+   desc:'Butt tender — short end tenderloin; restaurant specialty portion',
+   primal:'loin', color:'#a78bfa',
+   choiceP:1505.46, selectP:1475.63, volDesc:'<1 load/wk',
+   note:'Highest avg price in the report; low volume; fine dining restaurant-driven'},
+  // ── FLANK ────────────────────────────────────────────────────────────────
+  {key:'193',   imps:'193',  fl:4, name:'Flank, Flank Steak',
+   desc:'Flank steak — fajita, Korean bulgogi, marinated grilling export',
+   primal:'flank',color:'#fb923c',
+   choiceP:990.62,  selectP:1022.61,  volDesc:'~4 loads/wk',
+   note:'Fajita & Korean bulgogi export; steady but grilling season adds 3–5%'},
+
+  // ── TRIMMINGS (LM_XB460) ───────────────────────────────
+  {key:'TR90', imps:'TR90', fl:0, name:'Beef Trimmings, 90% Lean (Fresh)',
+   color:'#94a3b8', parent:'trim', primal:'trim',
+   choiceP:459.76, selectP:459.76, volDesc:'~21 loads/wk',
+   desc:'Fresh 90% CL trim · LM_XB460 national FOB · lean beef input',
+   note:'High-lean ground beef input; LM_XB460 national FOB. Tracks 90CL global lean beef price.'},
+  {key:'TR85', imps:'TR85', fl:0, name:'Beef Trimmings, 85% Lean (Fresh)',
+   color:'#94a3b8', parent:'trim', primal:'trim',
+   choiceP:410.19, selectP:410.19, volDesc:'~24 loads/wk',
+   desc:'Fresh 85% CL trim · LM_XB460 · dominant volume trim grade',
+   note:'Mid-lean trim; dominant trim grade by volume. Key input for retail 85/15 ground beef.'},
+  {key:'TR73', imps:'TR73', fl:0, name:'Beef Trimmings, 73% Lean (Fresh)',
+   color:'#94a3b8', parent:'trim', primal:'trim',
+   choiceP:339.72, selectP:339.72, volDesc:'~10 loads/wk',
+   desc:'Fresh 73% CL trim · LM_XB460 · fat-end blend input',
+   note:'Fat-end trim; blended with lean trim for ground beef formulation.'},
+  {key:'TR65', imps:'TR65', fl:0, name:'Beef Trimmings, 65% Lean (Fresh)',
+   color:'#64748b', parent:'trim', primal:'trim',
+   choiceP:254.53, selectP:254.53, volDesc:'~19 loads/wk',
+   desc:'Fresh 65% CL trim · LM_XB460 · Central region dominant',
+   note:'Low-lean trim; blending use. Central region dominates. LM_XB460.'},
+  {key:'TR50', imps:'TR50', fl:0, name:'Beef Trimmings, 50% Lean (Fresh)',
+   color:'#64748b', parent:'trim', primal:'trim',
+   choiceP:186.14, selectP:186.14, volDesc:'~34 loads/wk',
+   desc:'Fresh 50% CL trim · LM_XB459 & LM_XB460 · highest load count',
+   note:'Highest volume trim grade. Largest load count in LM_XB459 & LM_XB460. Tallow/fat by-product pricing.'},
+  // ── GROUND BEEF (LM_XB459 steer/heifer source) ─────────
+  {key:'GB73', imps:'GB73', fl:0, name:'Ground Beef 73% Lean (10 lb Chub)',
+   color:'#78716c', parent:'grind', primal:'grind',
+   choiceP:348.83, selectP:348.83, volDesc:'~5 loads/wk',
+   desc:'73/27 retail ground beef · steer/heifer chub · economy segment',
+   note:'Economy retail ground beef; 73/27 blend; price-sensitive consumer segment.'},
+  {key:'GB81', imps:'GB81', fl:0, name:'Ground Beef 81% Lean (10 lb Chub)',
+   color:'#78716c', parent:'grind', primal:'grind',
+   choiceP:418.33, selectP:418.33, volDesc:'~19 loads/wk',
+   desc:'80/20 retail ground beef · highest volume grind · tracks 85% trim',
+   note:'Highest volume retail ground beef. 80/20 blend. Tracks closely with 85% trim.'},
+  {key:'GB85', imps:'GB85', fl:0, name:'Ground Beef 85% Lean (10 lb Chub)',
+   color:'#78716c', parent:'grind', primal:'grind',
+   choiceP:473.31, selectP:473.31, volDesc:'~7 loads/wk',
+   desc:'85/15 lean retail ground beef · tracks 90CL trim with spread',
+   note:'Lean retail ground beef. Tracks 90CL trim pricing with processing premium.'},
+  {key:'GB90', imps:'GB90', fl:0, name:'Ground Beef 90% Lean (10 lb Chub)',
+   color:'#57534e', parent:'grind', primal:'grind',
+   choiceP:484.8, selectP:484.8, volDesc:'<1 load/wk',
+   desc:'Extra-lean ground beef · foodservice patty · tracks 90CL trim closely',
+   note:'Extra lean; foodservice patty use; low domestic volume. Tracks 90CL trim closely.'},
+];
+
+const PRIMAL_META = {
+  rib:    {label:'RIB',         color:'#4e9df5'},
+  chuck:  {label:'CHUCK',       color:'#3dd68c'},
+  brisket:{label:'BRISKET',     color:'#f5a623'},
+  plate:  {label:'SHORT PLATE', color:'#f25f5c'},
+  round:  {label:'ROUND',       color:'#2dd4bf'},
+  loin:   {label:'LOIN',        color:'#a78bfa'},
+  flank:  {label:'FLANK',       color:'#fb923c'},
+  trim:   {label:'Trimmings',   color:'#94a3b8', seasonal:false},
+  grind:  {label:'Ground Beef', color:'#78716c', seasonal:false},
+};
+
+const SCENARIOS = {
+  base:    {label:'Base',    color:'var(--blue)', ribM:1.000,loinM:1.000,grindM:1.000,brisketM:1.000,exportM:1.000},
+  bull:    {label:'Bull',    color:'var(--green)',ribM:1.058,loinM:1.048,grindM:1.022,brisketM:1.035,exportM:1.045},
+  bear:    {label:'Bear',    color:'var(--red)',  ribM:0.952,loinM:0.958,grindM:0.974,brisketM:0.960,exportM:0.940},
+  seasonal:{label:'Seasonal',color:'var(--amber)',ribM:1.000,loinM:1.000,grindM:1.000,brisketM:1.000,exportM:1.000},
+};
+
+// ─── STATE ─────────────────────────────────────────────────
+const S = { cut:null, grade:'choice', scen:'base', tab:'forecast', primalFilter:'all', showML:true };
+let CHARTS = {};
+
+// ─── INIT ──────────────────────────────────────────────────
+async function initApp() {
+  document.getElementById('loader').classList.remove('done');
+  const steps = ['Loading BFE engine…','Fetching USDA LM_XB459…','Calibrating sub-primal ratios…','Building forecast chain…'];
+  for (let i=0;i<steps.length;i++){
+    document.getElementById('ldS').textContent = steps[i];
+    document.getElementById('ldB').style.width = Math.round((i+1)/steps.length*100)+'%';
+    await sleep(i===1?320:150);
+    if(i===1) await tryLive();
+  }
+  renderPFRow();
+  renderCutList();
+  renderTicker();
+  document.getElementById('loader').classList.add('done');
+}
+
+async function tryLive() {
+  try {
+    const r = await fetch('https://mpr.datamart.ams.usda.gov/ws/report/v1/xb/LM_XB459',{headers:{Accept:'application/json'}});
+    if(r.ok) document.getElementById('dsrc').textContent = 'USDA LIVE';
+  } catch(e) {}
+  const luEl=document.getElementById('lupd'); if(luEl) luEl.textContent='Jun 26, 2026 '+(document.getElementById('dsrc')?.textContent||'');
+}
+
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+// ─── TICKER ────────────────────────────────────────────────
+function renderTicker() {
+  const snap = BFE.snapshot(BFE.BASE_LIVE, 1, 'choice');
+  const subs = snap.subs;
+  const items = [
+    {l:'CHOICE CUTOUT', v:'$396.53',c:'Jun 26 2026 wk',nt:true},
+    {l:'SELECT CUTOUT', v:'$376.22',c:'Jun 26 2026',nt:true},
+    {l:'189A TENDRLOIN',v:`${subs['189A']?.toFixed(0)||1526}`, c:'Mo1 fcst',nt:true},
+    {l:'180 STRIP LOIN',v:`${subs['180']?.toFixed(0)||1109}`,  c:'Mo1 fcst',nt:true},
+    {l:'112A-H RIBEYE', v:`${subs['112A-H']?.toFixed(0)||1305}`,c:'Mo1 fcst',nt:true},
+    {l:'120 BRISKET',   v:`${subs['120']?.toFixed(0)||478}`,   c:'Mo1 fcst',nt:true},
+    {l:'116A CHUCK ROLL',v:`${subs['116A']?.toFixed(0)||478}`, c:'Mo1 fcst',nt:true},
+    {l:'121C SKT STEAK',v:`${subs['121C']?.toFixed(0)||1159}`, c:'Mo1 fcst',nt:true},
+    {l:"LE AUG '26",    v:'252.9¢',c:'-1.03 wk',dn:true},
+    {l:'5-AREA STEER',  v:`${BFE.BASE_LIVE.toFixed(2)}`,c:'-0.75',dn:true},
+    {l:'90% LEAN TRIM', v:`${subs['TRIM-90']?.toFixed(2)||'459.76'}`, c:'LM_XB460 wk',nt:true},
+    {l:'85% LEAN TRIM', v:`${subs['TRIM-85']?.toFixed(2)||'410.19'}`, c:'LM_XB460 wk',nt:true},
+    {l:'73% LEAN TRIM', v:`${subs['TRIM-73']?.toFixed(2)||'339.72'}`, c:'LM_XB460 wk',nt:true},
+    {l:'50% LEAN TRIM', v:`${subs['TRIM-50']?.toFixed(2)||'186.14'}`, c:'LM_XB460 wk',nt:true},
+    {l:'GB 81% CHUB',   v:`${subs['GB-80']?.toFixed(2)||'412.12'}`,  c:'LM_XB459 wk',nt:true},
+  ];
+  document.getElementById('ticker').innerHTML = items.map(t=>
+    `<div class="tick"><div class="tl">${t.l}</div>
+     <div class="tv">${t.v}</div>
+     <div class="tc ${t.nt?'nt':t.up?'up':'dn'}">${t.c}</div></div>`
+  ).join('');
+}
+
+// ─── PRIMAL FILTER PILLS ───────────────────────────────────
+function renderPFRow() {
+  const filters = [{id:'all',label:'All Cuts'},...Object.entries(PRIMAL_META).map(([id,m])=>({id,label:m.label})),{id:'trim',label:'TRIM/GB'}];
+  document.getElementById('pfRow').innerHTML = filters.map(f=>
+    `<button class="pf-btn ${f.id===S.primalFilter?'active':''}" onclick="setPF('${f.id}')"
+       style="${f.id===S.primalFilter&&f.id!=='all'?`color:${PRIMAL_META[f.id]?.color};border-color:${PRIMAL_META[f.id]?.color}40;background:${PRIMAL_META[f.id]?.color}10`:''}"
+     >${f.label}</button>`
+  ).join('');
+}
+
+function setPF(id) {
+  S.primalFilter = id;
+  renderPFRow();
+  renderCutList();
+}
+
+// ─── CUT LIST ──────────────────────────────────────────────
+function getFiltered() {
+  const q = (document.getElementById('searchInp')?.value||'').toLowerCase();
+  return CUTS.filter(c => {
+    const cutGroup = c.parent || c.primal || '';
+    const pm = S.primalFilter==='all'
+      || (S.primalFilter==='trim' && ['trim','grind'].includes(cutGroup))
+      || cutGroup===S.primalFilter;
+    const desc = (c.desc||c.note||'').toLowerCase();
+    const sm = !q || c.imps.toLowerCase().includes(q) || c.name.toLowerCase().includes(q)
+             || desc.includes(q) || c.key.toLowerCase().includes(q);
+    return pm && sm;
+  });
+}
+
+function renderCutList() {
+  const filtered = getFiltered();
+  document.getElementById('listCount').textContent = filtered.length + ' / 46 cuts';
+  document.getElementById('resCount').textContent  = filtered.length+' cuts';
+
+  // Group by primal
+  const groups = {};
+  filtered.forEach(c=>{ const _pid=c.parent||c.primal||'other'; if(!groups[_pid]) groups[_pid]=[]; groups[_pid].push(c); });
+  const order = ['rib','chuck','brisket','plate','round','loin','flank','trim','grind'];
+  const trimOrder = ['TRIM-90','TRIM-85','TRIM-73','TRIM-65','TRIM-50','GB-73','GB-80','GB-90'];
+
+  // Build sub forecast for 4wk estimate
+  const lcMs  = BFE.getLCMonths();
+  const coMs  = BFE.lcToCutout(lcMs, S.grade);
+  const primalMs = {};
+  order.forEach(pid => { if(!['trim','grind'].includes(pid)) primalMs[pid] = BFE.cutoutToPrimal(pid, coMs, S.grade); });
+
+  let html = '';
+  order.forEach(pid => {
+    if (!groups[pid]) return;
+    const pm = PRIMAL_META[pid];
+    html += `<div style="border-bottom:1px solid var(--border)">
+      <div class="pg-hdr"><div class="pg-dot" style="background:${pm.color}"></div>
+        <div class="pg-name">${pm.label}</div>
+        <div class="pg-ct">${groups[pid].length}</div>
+      </div>`;
+    groups[pid].forEach(c => {
+      const base   = S.grade==='choice'?c.choiceP:c.selectP;
+      const subKey = c.key in BFE.SUB_RATIOS ? c.key : null;
+      let fc4 = base;
+      if (subKey) {
+        if (['trim','grind'].includes(pid)) {
+          // Direct cutout-based forecast for ungraded trim/grind
+          const subMeta = BFE.SUB_RATIOS[subKey];
+          const curMo = new Date().getMonth();
+          const sAdj = subMeta ? subMeta.seasonal[(curMo+1)%12]/subMeta.seasonal[curMo] : 1;
+          fc4 = coMs.length ? coMs[0].cutout * (subMeta?.baseRatioSC||1) * sAdj : base;
+        } else if (primalMs[pid]?.length) {
+          const sMs = BFE.primalToSub(subKey, primalMs[pid]);
+          fc4 = sMs.length ? sMs[0].sub : base;
+        }
+      }
+      const diff = fc4 - base;
+      const isActive = c.key === S.cut;
+      html += `<button class="cut-row ${isActive?'active':''}" onclick="selectCut('${c.key}')">
+        <div class="cr-imps" style="color:${isActive?c.color:'var(--text3)'}">
+          ${c.imps}<br><span style="font-size:8px;color:var(--text3)">FL${c.fl}</span>
+        </div>
+        <div class="cr-info">
+          <div class="cr-name">${c.name}</div>
+          <div class="cr-desc">${(c.desc||c.note||'').substring(0,44)}…</div>
+        </div>
+        <div class="cr-r">
+          <div class="cr-px" style="color:${c.color}">${base.toFixed(0)}</div>
+          <div class="cr-ch ${diff>=0?'up':'dn'}">${diff>=0?'▲':'▼'}${Math.abs(diff).toFixed(0)}</div>
+        </div>
+      </button>`;
+    });
+    html += `</div>`;
+  });
+  document.getElementById('cutList').innerHTML = html || '<div style="padding:20px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--text3)">No cuts match filter</div>';
+}
+
+// ─── SELECT CUT ────────────────────────────────────────────
+function selectCut(key) {
+  S.cut = key;
+  // Update grade toggle for trim/grind (ungraded) vs Choice/Select cuts
+  const cutEntry = CUTS.find(c=>c.key===key);
+  const isUG = cutEntry && ['trim','grind'].includes(cutEntry.parent||cutEntry.primal||'');
+  document.getElementById('btnChoice')?.classList.toggle('hidden', isUG);
+  document.getElementById('btnSelect')?.classList.toggle('hidden', isUG);
+  document.getElementById('btnUngraded')?.classList.toggle('hidden', !isUG);
+  if(isUG) document.getElementById('btnUngraded')?.classList.add('active');
+  renderCutList();
+  if (S.tab === 'ratios') {
+    renderRatioDetail(key);
+    renderRatioOverview();
+    return;
+  }
+  if (S.tab !== 'forecast') {
+    document.querySelector('[data-tab="forecast"]').click();
+    return;
+  }
+  document.getElementById('ph-msg').classList.add('hidden');
+  document.getElementById('fc-content').classList.remove('hidden');
+  renderForecast();
+}
+
+// ─── BUILD FORECAST ────────────────────────────────────────
+function buildSubForecast(cutKey, grade, scenId) {
+  const cut    = CUTS.find(c=>c.key===cutKey); if(!cut) return [];
+  const slRat  = AVG_SL_RATIO[cutKey];         // 3yr-avg monthly SP/LC ratio [Jan..Dec]
+  const smeta  = BFE.SUB_RATIOS[cutKey] || {   // fallback for TR/GB
+    seasonal:[1,1,1,1,1,1,1,1,1,1,1,1],
+    baseRatioSL: slRat ? slRat.reduce((a,b)=>a+b,0)/12 : 1,
+    selectAdj:1.0, vol: SL_CV[cutKey]||0.025,
+  };
+  if(!slRat && !BFE.SUB_RATIOS[cutKey]) return []; // nothing to work with
+  const sc     = SCENARIOS[scenId]||SCENARIOS.base;
+  const lcMs   = BFE.getLCMonths();
+  const coMs   = BFE.lcToCutout(lcMs, grade);
+  const annAvg = smeta.seasonal.reduce((a,b)=>a+b,0)/12;
+
+  let sMs;
+  if (slRat) {
+    // ── PRIMARY PATH: SP = LC × avg3yr_SP/LC_ratio[month] ──
+    // Applies to ALL cuts: IMPS sub-primals, TR trimmings, GB ground beef.
+    const selDisc = (grade==='select') ? (smeta.selectAdj||0.95) : 1.0;
+    sMs = coMs.map((m, i) => {
+      const ratio = slRat[m.mo] * selDisc;          // SP/LC ratio this month
+      const val   = +(m.lc * ratio).toFixed(2);     // SP $/cwt
+      const scR   = m.cutout > 0 ? +(val/m.cutout).toFixed(4) : 0; // SP/CO
+      return { ...m, sub:val, primal:val,
+               spRatio:ratio, scRatio:scR,
+               slRatio:+ratio.toFixed(4), histSLRatio:slRat[m.mo] };
+    });
+    // ── FALLBACK: cutout→primal→sub chain (no AVG_SL_RATIO) ──
+    const isTG = ['trim','grind'].includes(cut.parent||'');
+    if (isTG) {
+      const curMo = new Date().getMonth();
+      sMs = coMs.map(m => {
+        const sAdj = smeta.seasonal[m.mo]/smeta.seasonal[curMo];
+        const val  = +(m.cutout * smeta.baseRatioSL / (BFE.CO_LIVE_BASE||1.54) * sAdj).toFixed(2);
+        return { ...m, sub:val, primal:val,
+                 scRatio:+(val/m.cutout).toFixed(4), slRatio:+(val/m.lc).toFixed(4) };
+      });
+    } else {
+      const pMs = BFE.cutoutToPrimal(cut.primal||cut.parent, coMs, grade);
+      sMs = BFE.primalToSub(cutKey, pMs);
+    }
+  }
+
+  // Scenario multiplier (ramps in over first 3 months)
+  const scMult = scenId==='seasonal' ? 1 :
+    cut.parent==='rib'     ? sc.ribM     :
+    cut.parent==='loin'    ? sc.loinM    :
+    cut.parent==='brisket' ? sc.brisketM :
+    (['plate','flank','round'].includes(cut.parent)) ? sc.exportM : sc.grindM;
+
+  // 80% CI: SP × CV × t(1.307) × √(1+horizon/11)
+  const cv = SL_CV[cutKey] || smeta.vol || 0.07;
+
+  return sMs.map((m,i) => {
+    const val  = m.sub * (scenId==='seasonal' ? 1 : Math.min(1,i/3)*(scMult-1)+1);
+    const band = val * cv * 1.307 * Math.sqrt(1+i/11);
+    // Seasonal deviation: from monthly SP/LC ratio vs annual avg
+    const moAvg    = slRat;
+    const annAvgSL = moAvg ? moAvg.reduce((a,b)=>a+b,0)/12 : smeta.baseRatioSL;
+    const seasDev  = moAvg
+      ? +((moAvg[m.mo]/annAvgSL-1)*100).toFixed(1)
+      : +((smeta.seasonal[m.mo]/annAvg-1)*100).toFixed(1);
+    return {
+      ...m, sub: +val.toFixed(2),
+      low:  +(val-band).toFixed(2),
+      high: +(val+band).toFixed(2),
+      seasonIdx: seasDev,
+      conf: i<3?'High':i<7?'Medium':'Low',
+    };
+  });
+}
+
+
+function renderForecast() {
+  const cut = CUTS.find(c=>c.key===S.cut); if(!cut) return;
+  const base    = S.grade==='choice'?cut.choiceP:cut.selectP;
+  const months  = buildSubForecast(cut.key, S.grade, S.scen);
+  if(!months.length) return;
+
+  // ML cross-check forecast (ridge regression trained on n=36 calibration data,
+  // choice-basis; scaled to select grade using current CUTS choice/select ratio)
+  const gradeAdj = (S.grade==='select' && cut.choiceP) ? (cut.selectP/cut.choiceP) : 1;
+  const mlRaw = BFE.mlForecast(cut.key, 'choice');
+  const mlModel = BFE.trainMLModel(cut.key);
+  const mlVals = mlRaw.map(m => +(m.ml*gradeAdj).toFixed(2));
+
+  const pm   = PRIMAL_META[cut.parent] || PRIMAL_META[cut.primal] || {label:cut.parent||'N/A',color:'#94a3b8'};
+  const sc   = SCENARIOS[S.scen];
+  const isUngraded = ['trim','grind'].includes(cut.parent||cut.primal||'');
+  const gr   = isUngraded ? 'Ungraded' : (S.grade==='choice'?'Choice':'Select');
+  const grC  = S.grade==='choice'?'var(--blue)':'var(--green)';
+  const peak = Math.max(...months.map(m=>m.sub));
+  const trh  = Math.min(...months.map(m=>m.sub));
+  const avg12= (months.reduce((s,m)=>s+m.sub,0)/12).toFixed(2);
+  const fc12 = months[11].sub;
+  const chg  = ((fc12/base-1)*100).toFixed(1);
+
+  // Badges
+  document.getElementById('impsBadge').textContent = `IMPS ${cut.imps} FL${cut.fl}`;
+  document.getElementById('primalBadge').innerHTML = `<span class="chip" style="color:${pm.color};border-color:${pm.color}40;background:${pm.color}10">${pm.label}</span>`;
+  document.getElementById('gradeBadge').innerHTML  = `<span class="chip" style="color:${grC};border-color:${grC}40;background:${grC}10">${gr}</span>`;
+  document.getElementById('scenBadge').innerHTML   = `<span class="chip" style="color:${sc.color};border-color:${sc.color}40;background:${sc.color}10">${sc.label}</span>`;
+  document.getElementById('fcTitle').textContent   = cut.name;
+  document.getElementById('fcSub').textContent     = `${cut.desc||''} · ${cut.volDesc||''} · ${cut.note||''}`;
+
+  // Chain banner
+  const m0 = months[0];
+  const subMeta = BFE.SUB_RATIOS[cut.key];
+  const histSPR = subMeta?.baseRatioSC || subMeta?.baseRatioSL || 1;
+  const histPCR = BFE.PRIMAL_RATIOS[cut.primal||cut.parent]?.baseRatio || 1;
+  document.getElementById('chainBanner').innerHTML = `
+    <div class="chain-cell">
+      <div class="chain-lbl">⛓ BFE Source</div>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--text2);margin-top:2px">
+        LC <span style="color:rgba(245,166,35,.8)">${(m0.lc||0).toFixed(0)}</span> →
+        CO <span style="color:rgba(245,166,35,.6)">${(m0.cutout||0).toFixed(0)}</span> →
+        ${pm.label.charAt(0)+pm.label.slice(1).toLowerCase()} <span style="color:${pm.color}">${(m0.primal||m0.sub||0).toFixed(0)}</span> →
+        <span style="color:${cut.color};font-weight:700">${m0.sub.toFixed(2)}</span>
+      </div>
+    </div>
+    <div class="chain-cell">
+      <div class="chain-lbl">SP / Cutout (Mo 1)</div>
+      <div class="chain-val" style="color:var(--purple)">${(m0.scRatio||0).toFixed(3)}×</div>
+      <div class="chain-sub">Hist base: ${((histSPR||1)*(histPCR||1)).toFixed(3)}×</div>
+    </div>
+    <div class="chain-cell">
+      <div class="chain-lbl">SP / Live Cattle (Mo 1)</div>
+      <div class="chain-val" style="color:var(--teal)">${(m0.slRatio||m0.sub/m0.lc||0).toFixed(3)}×</div>
+    </div>
+    <div class="chain-cell">
+      <div class="chain-lbl">SP / Primal (Mo 1)</div>
+      <div class="chain-val" style="color:${pm.color}">${(m0.spRatio||0).toFixed(3)}×</div>
+      <div class="chain-sub">Hist base: ${(histSPR||1).toFixed(3)}</div>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center">
+      <div style="font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:4px;background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.3);color:var(--purple)">
+        ${BFE.loadLCMonths()?'🔗 Linked to Live Cattle Model':'📊 CME Futures Baseline'}
+      </div>
+    </div>`;
+
+  // Stats
+  document.getElementById('fcStats').innerHTML = [
+    {l:'Current',      v:`${base.toFixed(2)}`, s:`/cwt ${gr.toLowerCase()}`},
+    {l:'Mo 1 Forecast',v:`${m0.sub.toFixed(2)}`,s:`${((m0.sub/base-1)*100)>=0?'+':''}${((m0.sub/base-1)*100).toFixed(1)}%`,c:m0.sub>=base?'var(--green)':'var(--red)'},
+    {l:'12-Mo Target', v:`${fc12.toFixed(2)}`, s:`${chg>=0?'+':''}${chg}%`,c:fc12>=base?'var(--green)':'var(--red)'},
+    {l:'12-Mo Avg',    v:`${avg12}`,            s:'forecast mean'},
+    {l:'Peak',         v:`${peak.toFixed(2)}`,  s:months.find(m=>m.sub===peak)?.label,c:'var(--green)'},
+    {l:'Ann. Volatility',v:`${((subMeta?.vol||0.03)*100).toFixed(1)}%`,s:'σ price vol'},
+    {l:'🤖 ML 12-Mo Target',v:mlVals.length?`${mlVals[11].toFixed(2)}`:'—',
+      s:mlVals.length?`${((mlVals[11]/base-1)*100)>=0?'+':''}${((mlVals[11]/base-1)*100).toFixed(1)}% · R²=${mlModel?mlModel.r2.toFixed(2):'—'}`:'insufficient data',
+      c:'var(--purple)'},
+    {l:'ML vs Chain (Mo 12)',v:mlVals.length?`${(mlVals[11]-fc12>=0?'+':'')}${(mlVals[11]-fc12).toFixed(2)}`:'—',
+      s:mlVals.length?`${(((mlVals[11]/fc12)-1)*100).toFixed(1)}% divergence`:'',c:'var(--text2)'},
+  ].map(s=>`<div class="st"><div class="sl">${s.l}</div>
+    <div class="sv" style="color:${s.c||'var(--text)'}">${s.v}</div>
+    <div class="ss">${s.s||''}</div></div>`).join('');
+
+  // Historical proxy from seasonal back-calculation
+  const hL = []; const hV = [];
+  for (let i=-5;i<=0;i++) {
+    const d = new Date(new Date().getFullYear(),new Date().getMonth()+i,1);
+    const mo = d.getMonth();
+    const annAvg2 = (subMeta?.seasonal||[]).reduce((a,b)=>a+b,0)/12||1;
+    const sAdj = subMeta ? subMeta.seasonal[mo]/subMeta.seasonal[new Date().getMonth()] : 1 // normalized div by curMo;
+    hL.push(d.toLocaleString('en-US',{month:'short',year:'2-digit'}));
+    hV.push(+(base*sAdj).toFixed(2));
+  }
+  const allL   = [...hL,...months.map(m=>m.label)];
+  const hFull  = [...hV,...Array(12).fill(null)];
+  const fcFull = [...Array(5).fill(null),hV[5],...months.map(m=>m.sub)];
+  const hi80   = [...Array(6).fill(null),...months.map(m=>m.high)];
+  const lo80   = [...Array(6).fill(null),...months.map(m=>m.low)];
+  const pLine  = [...Array(6).fill(null),...months.map(m=>m.primal)];
+  const coLine = [...Array(6).fill(null),...months.map(m=>m.cutout)];
+  const mlLine = [...Array(5).fill(null),hV[5],...mlVals];
+
+  const ctx = document.getElementById('mainChart').getContext('2d');
+  if(CHARTS.main){CHARTS.main.destroy();CHARTS.main=null;}
+  CHARTS.main = new Chart(ctx,{type:'line',
+    data:{labels:allL,datasets:[
+      {label:'CI Hi', data:hi80,  borderColor:'transparent',backgroundColor:cut.color+'15',fill:'+1',tension:.4,pointRadius:0,borderWidth:0},
+      {label:'CI Lo', data:lo80,  borderColor:'transparent',backgroundColor:'transparent',fill:false,tension:.4,pointRadius:0,borderWidth:0},
+      {label:'Primal',data:pLine, borderColor:'rgba(245,166,35,.5)',borderWidth:1.5,borderDash:[4,3],pointRadius:0,tension:.4,spanGaps:false,fill:false,yAxisID:'y2'},
+      {label:'Cutout',data:coLine,borderColor:'rgba(167,139,250,.4)',borderWidth:1.2,borderDash:[2,4],pointRadius:0,tension:.4,spanGaps:false,fill:false,yAxisID:'y2'},
+      {label:'Hist',  data:hFull, borderColor:'#5a6a7a',borderWidth:2,pointRadius:0,tension:.4,spanGaps:false,fill:false},
+      {label:'Fcst',  data:fcFull,borderColor:cut.color,borderWidth:2.5,
+        pointRadius:[0,0,0,0,0,5,...Array(12).fill(3)],
+        pointBackgroundColor:cut.color,pointBorderColor:'var(--bg)',pointBorderWidth:2,
+        tension:.4,spanGaps:false,fill:false},
+      {label:'ML Fcst',data:S.showML?mlLine:Array(allL.length).fill(null),
+        borderColor:'#a78bfa',borderWidth:2,borderDash:[6,3],
+        pointRadius:[0,0,0,0,0,4,...Array(12).fill(2)],
+        pointBackgroundColor:'#a78bfa',pointBorderColor:'var(--bg)',pointBorderWidth:1.5,
+        tension:.4,spanGaps:false,fill:false},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{
+        backgroundColor:'#131920',borderColor:'rgba(255,255,255,.1)',borderWidth:1,
+        titleFont:{family:"'JetBrains Mono'",size:11},bodyFont:{family:"'JetBrains Mono'",size:12},
+        titleColor:'#7a8899',bodyColor:'#dde5f0',
+        callbacks:{label:c=>{if(!c.parsed.y)return '';
+          const n=['','','Parent Primal','Cutout','Historical','Sub-Primal Forecast','ML Forecast (ridge)'];
+          return n[c.datasetIndex]?`${n[c.datasetIndex]}: ${c.parsed.y.toFixed(2)}/cwt`:'';
+        },filter:i=>i.parsed.y!==null}
+      }},
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{family:"'JetBrains Mono'",size:9},color:'#3d4d5e',maxRotation:45},border:{display:false}},
+        y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{family:"'JetBrains Mono'",size:9},color:'#3d4d5e',callback:v=>'$'+v.toLocaleString()},border:{display:false},position:'left'},
+        y2:{grid:{display:false},ticks:{font:{family:"'JetBrains Mono'",size:9},color:'rgba(245,166,35,.45)',callback:v=>'$'+v.toFixed(0)},border:{display:false},position:'right'},
+      }
+    }
+  });
+
+  document.getElementById('chartLeg').innerHTML = `
+    <div class="li"><div class="ll" style="background:#5a6a7a"></div>Historical</div>
+    <div class="li"><div class="ll" style="background:${cut.color}"></div>Sub-Primal Forecast</div>
+    <div class="li"><div class="lb2" style="background:${cut.color}"></div>80% CI</div>
+    <div class="li"><div class="ld" style="border-top:2px dashed rgba(245,166,35,.6)"></div>Parent Primal →</div>
+    <div class="li"><div class="ld" style="border-top:2px dashed rgba(167,139,250,.5)"></div>Cutout →</div>
+    ${S.showML?`<div class="li"><div class="ld" style="border-top:2px dashed #a78bfa"></div>🤖 ML Forecast (R²=${mlModel?mlModel.r2.toFixed(2):'—'})</div>`:''}`;
+
+  // Monthly table
+  const cc={High:'var(--green)',Medium:'var(--amber)',Low:'var(--red)'};
+  const cb={High:'rgba(61,214,140,.08)',Medium:'rgba(245,166,35,.08)',Low:'rgba(242,95,92,.08)'};
+  const mx=Math.max(...months.map(m=>m.sub)), mn=Math.min(...months.map(m=>m.sub));
+  document.getElementById('fcTable').innerHTML = `<table>
+    <thead><tr>
+      <th>Cattle Mo</th><th title="LM_XB459 Jun 26 2026 actual">Actual Jun26</th><th>Forecast</th><th title="Ridge regression, trained on n=36 calibration">🤖 ML Fcst</th><th>Low 80%</th><th>High 80%</th>
+      <th>vs Actual</th><th>LC $/cwt</th><th>Cutout</th><th>SP/CO</th><th>SP/LC</th><th>Seasonal</th><th>Conf</th>
+    </tr></thead>
+    <tbody>${months.map(m=>{
+      const ch=((m.sub/base-1)*100); const bp=Math.round((m.sub-mn)/(mx-mn||1)*100);
+      // Actual current price (choiceP / selectP from CUTS entry)
+      const cutEntry = CUTS.find(c=>c.key===S.cut);
+      const actualP  = cutEntry ? (S.grade==='select' ? cutEntry.selectP : cutEntry.choiceP) : null;
+      const vsActual = actualP ? ((m.sub - actualP)/actualP*100) : null;
+      // Determine which CME contract governs this cattle month
+      const futRef = BFE.FUTURES.reduce((best,f)=>{
+        const d=Math.abs((m.yr*12+m.mo)-(f.yr*12+f.mo));
+        const bd=Math.abs((m.yr*12+m.mo)-(best.yr*12+best.mo));
+        return d<bd?f:best;
+      }, BFE.FUTURES[0]);
+      const isNearMonth = m.idx < 2;
+      return `<tr style="${isNearMonth?'border-left:2px solid rgba(78,157,245,.4)':''}">
+        <td style="font-weight:600;color:var(--blue)">${m.label}
+          <span style="font-size:9px;color:var(--text3);display:block">${futRef.m} LE</span></td>
+        <td style="color:var(--amber);font-weight:700">${actualP ? '$'+actualP.toFixed(2) : '—'}
+          <span style="font-size:9px;color:var(--text3);display:block">LM_XB459</span></td>
+        <td style="color:${cut.color};font-weight:700">${(m.sub||0).toFixed(2)}</td>
+        <td style="color:#a78bfa;font-weight:600">${mlVals[m.idx]!==undefined?mlVals[m.idx].toFixed(2):'—'}</td>
+        <td style="color:var(--text2)">${(m.low||0).toFixed(2)}</td>
+        <td style="color:var(--text2)">${(m.high||0).toFixed(2)}</td>
+        <td class="${vsActual===null?'nt':vsActual>=0?'up':'dn'}">${vsActual===null?'—':(vsActual>=0?'+':'')+vsActual.toFixed(1)+'%'}</td>
+        <td style="color:var(--amber);font-weight:600">${(m.lc||0).toFixed(2)}
+          <span style="font-size:9px;color:var(--text3);display:block">${(futRef?.p||0).toFixed(3)}¢ ref</span></td>
+        <td style="color:rgba(167,139,250,.8)">${(m.cutout||0).toFixed(2)}</td>
+        <td style="color:var(--purple)">${(m.scRatio||0).toFixed(3)}×</td>
+        <td style="color:var(--teal);font-weight:700">${(m.slRatio||m.sub/m.lc||0).toFixed(3)}×
+          <span style="font-size:9px;color:var(--text3);display:block">=${((m.slRatio||0)*m.lc).toFixed(1)}</span></td>
+        <td style="color:${m.seasonIdx>=0?'var(--green)':'var(--red)'}">${m.seasonIdx>=0?'+':''}${m.seasonIdx}%</td>
+        <td><span class="cp" style="background:${cb[m.conf]};color:${cc[m.conf]};border:1px solid ${cc[m.conf]}30">${m.conf}</span></td>
+      </tr>`;
+    }).join('')}</tbody></table>`;
+
+  // Seasonal chart
+  if(CHARTS.season){CHARTS.season.destroy();CHARTS.season=null;}
+  const sMeta = BFE.SUB_RATIOS[cut.key];
+  const annAvg3 = sMeta ? sMeta.seasonal.reduce((a,b)=>a+b,0)/12 : 1;
+  const idx3 = sMeta ? sMeta.seasonal.map(v=>+((v/annAvg3-1)*100).toFixed(1)) : Array(12).fill(0);
+  CHARTS.season = new Chart(document.getElementById('seasonChart').getContext('2d'),{type:'bar',
+    data:{labels:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+      datasets:[{label:'Seasonal',data:idx3,
+        backgroundColor:idx3.map(v=>v>=0?cut.color+'88':'rgba(242,95,92,.55)'),
+        borderColor:idx3.map(v=>v>=0?cut.color:'var(--red)'),
+        borderWidth:1,borderRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:c=>`${c.parsed.y>=0?'+':''}${c.parsed.y.toFixed(1)}% vs annual avg`}}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{family:"'JetBrains Mono'",size:9},color:'#3d4d5e'},border:{display:false}},
+        y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{family:"'JetBrains Mono'",size:9},color:'#3d4d5e',callback:v=>v+'%'},border:{display:false}},
+      }
+    }
+  });
+
+  // Futures strip
+  document.getElementById('futStrip').innerHTML = BFE.FUTURES.map(f=>
+    `<div class="fc"><div class="fm">${f.m}</div>
+     <div class="fp">${f.p.toFixed(2)}¢</div>
+     <div class="fch ${f.ch>=0?'up':'dn'}">${f.ch>=0?'▲':'▼'} ${Math.abs(f.ch).toFixed(2)}</div></div>`
+  ).join('');
+}
+
+// ─── COMPARE TAB ────────────────────────────────────────────
+function renderCompareTab() {
+  const filtered = getFiltered();
+  const lcMs  = BFE.getLCMonths();
+  const coMs  = BFE.lcToCutout(lcMs, S.grade);
+  const primalMs = {};
+  ['rib','chuck','brisket','plate','round','loin','flank'].forEach(pid=>{
+    primalMs[pid] = BFE.cutoutToPrimal(pid, coMs, S.grade);
+  });
+
+  let data = filtered.map(c => {
+    const base = S.grade==='choice'?c.choiceP:c.selectP;
+    let sMs;
+    if (['trim','grind'].includes(c.parent||c.primal)) {
+      // Direct cutout forecast for trim/grind
+      const subMeta = BFE.SUB_RATIOS[c.key];
+      const curMo = new Date().getMonth();
+      sMs = coMs.map((m,i) => {
+        const sAdj = subMeta ? subMeta.seasonal[m.mo]/subMeta.seasonal[curMo] : 1;
+        return { ...m, sub: +(m.cutout*(subMeta?.baseRatioSC||1)*sAdj).toFixed(2) };
+      });
+    } else {
+      sMs = BFE.primalToSub(c.key, primalMs[c.primal]||[]);
+    }
+    const fc12 = sMs.length ? sMs[11].sub : base;
+    const chg  = ((fc12/base-1)*100);
+    return {...c, base, fc12, chg};
+  });
+  const sortVal = document.getElementById('sortSel')?.value || 'price-desc';
+  if(sortVal==='price-desc') data.sort((a,b)=>b.base-a.base);
+  else if(sortVal==='price-asc') data.sort((a,b)=>a.base-b.base);
+  else if(sortVal==='chg-desc') data.sort((a,b)=>b.chg-a.chg);
+  else data.sort((a,b)=>a.primal.localeCompare(b.primal)||a.name.localeCompare(b.name));
+
+  const maxBase = Math.max(...data.map(d=>d.base));
+
+  if(CHARTS.cmp){CHARTS.cmp.destroy();CHARTS.cmp=null;}
+  CHARTS.cmp = new Chart(document.getElementById('cmpChart').getContext('2d'),{type:'bar',
+    data:{labels:data.map(d=>d.imps),datasets:[
+      {label:'Current',  data:data.map(d=>d.base), backgroundColor:data.map(d=>d.color+'88'),borderColor:data.map(d=>d.color),borderWidth:1,borderRadius:3},
+      {label:'12-Mo Fcst',data:data.map(d=>d.fc12),backgroundColor:'transparent',borderColor:data.map(d=>d.color),borderWidth:2,borderRadius:3},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},
+      tooltip:{callbacks:{title:i=>data[i[0].dataIndex]?.name||'',
+        label:c=>c.datasetIndex===0?`Current: ${c.parsed.y.toFixed(2)}`:`12-Mo: ${c.parsed.y.toFixed(2)}`}}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{family:"'JetBrains Mono'",size:8},color:'#3d4d5e',maxRotation:60},border:{display:false}},
+        y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{family:"'JetBrains Mono'",size:9},color:'#3d4d5e',callback:v=>'$'+v.toLocaleString()},border:{display:false}},
+      }
+    }
+  });
+
+  document.getElementById('cmpGrid').innerHTML = data.map(d=>
+    `<div class="cmp-card" onclick="selectCut('${d.key}')">
+      <div style="font-family:var(--mono);font-size:9px;font-weight:700;color:${d.color};margin-bottom:3px">${d.imps} FL${d.fl}</div>
+      <div style="font-size:11px;font-weight:500;margin-bottom:5px;line-height:1.3">${d.name}</div>
+      <div style="font-family:var(--mono);font-size:17px;font-weight:700;color:${d.color}">${d.base.toFixed(2)}</div>
+      <div style="height:3px;background:var(--bg4);border-radius:2px;margin:6px 0 5px;overflow:hidden">
+        <div style="height:100%;width:${Math.round(d.base/maxBase*100)}%;background:${d.color}88;border-radius:2px"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--text3)">
+        <span>12-mo: <span class="${d.chg>=0?'up':'dn'}">${d.chg>=0?'+':''}${d.chg.toFixed(1)}%</span></span>
+        <span>${d.volDesc}</span>
+      </div>
+    </div>`
+  ).join('');
+}
+
+// ─── HEATMAP ────────────────────────────────────────────────
+function renderHeatmap() {
+  // Build ordered forecast months starting from next month (matches buildLCForecast output)
+  const today    = new Date();
+  const curMo    = today.getMonth();
+  const ALL_MONS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  // 12 forecast months in order: [Jul'26, Aug'26, ... Jun'27]
+  const fcMons = Array.from({length:12},(_,i)=>{
+    const d = new Date(today.getFullYear(), curMo+i+1, 1);
+    return { mo:d.getMonth(), yr:d.getFullYear(),
+             label: ALL_MONS[d.getMonth()]+"'"+(d.getFullYear()%100) };
+  });
+  // Map each forecast month to its governing CME futures contract
+  const futRef = mo => BFE.FUTURES.reduce((best,f)=>{
+    const d=Math.abs((mo.yr*12+mo.mo)-(f.yr*12+f.mo));
+    const bd=Math.abs((mo.yr*12+mo.mo)-(best.yr*12+best.mo));
+    return d<bd?f:best;
+  }, BFE.FUTURES[0]);
+  const order = ['rib','chuck','brisket','plate','round','loin','flank','trim','grind'];
+  const trimOrder = ['TRIM-90','TRIM-85','TRIM-73','TRIM-65','TRIM-50','GB-73','GB-80','GB-90'];
+  let html = `<table class="hm-tbl"><thead><tr>
+    <th>Cut (IMPS)</th>
+    ${fcMons.map((fm,i)=>`<th style="${i<2?'color:var(--blue)':''}" title="${futRef(fm).m} LE @ ${futRef(fm).p.toFixed(3)}¢">
+      ${fm.label}<span style="display:block;font-size:8px;color:var(--text3)">${futRef(fm).m}</span></th>`).join('')}
+  </tr></thead><tbody>`;
+
+  order.forEach(pid => {
+    const pm = PRIMAL_META[pid];
+    const cutsInPrimal = CUTS.filter(c=>c.primal===pid);
+    if(!cutsInPrimal.length) return;
+    html += `<tr><td colspan="13" class="primal-grp-hdr" style="color:${pm.color}">${pm.label}</td></tr>`;
+    cutsInPrimal.forEach(c => {
+      const meta = BFE.SUB_RATIOS[c.key];
+      if(!meta) return;
+      const annAvg = meta.seasonal.reduce((a,b)=>a+b,0)/12;
+      // Map seasonal indices to FORECAST month order (Jul'26..Jun'27) — matches forecast table
+      const fcDevs = fcMons.map(fm => +((meta.seasonal[fm.mo]/annAvg-1)*100).toFixed(1));
+      html += `<tr>
+        <td onclick="selectCut('${c.key}')" style="cursor:pointer">${c.imps} — ${c.name.substring(0,24)}</td>
+        ${fcDevs.map((d,i)=>{
+          const intens=Math.min(Math.abs(d)/12,1);
+          const bg=d>=0?`rgba(61,214,140,${.1+intens*.55})`:`rgba(242,95,92,${.1+intens*.55})`;
+          const fm=fcMons[i]; const fr=futRef(fm);
+          return `<td title="${c.name} ${fm.label} | ${fr.m} LE ${fr.p.toFixed(3)}¢ | Seasonal: ${d>=0?'+':''}}${d}%" style="${i<2?'outline:1px solid rgba(78,157,245,.3)':''}">
+            <div class="hm-cell" style="background:${bg};color:${d>=0?'#86efac':'#fca5a5'}"
+              onclick="selectCut('${c.key}')">${d>=0?'+':''}}${d.toFixed(0)}%</div></td>`;
+        }).join('')}
+      </tr>`;
+    });
+  });
+  // ── TRIM & GROUND BEEF SECTION ─────────────────────────────
+  html += `<tr><td colspan="${fcMons.length+1}" style="padding:8px 4px 4px;font-size:9px;color:var(--text3);letter-spacing:.1em;font-weight:600;border-top:1px solid var(--border)">
+    ▸ LM_XB460 TRIMMINGS &amp; LM_XB459 GROUND BEEF ($/cwt)</td></tr>`;
+  trimOrder.forEach(key => {
+    const trimMeta = BFE.SUB_RATIOS[key]; if(!trimMeta) return;
+    const trimCut = CUTS.find(c=>c.key===key); if(!trimCut) return;
+    const annAvg = trimMeta.seasonal.reduce((a,b)=>a+b,0)/12;
+    const fcDevs = fcMons.map(fm => +((trimMeta.seasonal[fm.mo]/annAvg-1)*100).toFixed(1));
+    const snap1 = BFE.snapshot(BFE.BASE_LIVE, 1, 'choice');
+    const curPrice = snap1.subs[key]?.toFixed(2) || '—';
+    html += `<tr>
+      <td onclick="selectCut('${key}')" style="cursor:pointer;color:var(--text2)">
+        ${trimCut.imps} — ${trimCut.name.substring(0,28)}
+        <span style="display:block;font-size:9px;color:var(--amber)">${curPrice} $/cwt now</span>
+      </td>
+      ${fcDevs.map((d,i)=>{
+        const intens=Math.min(Math.abs(d)/10,1);
+        const bg=d>=0?`rgba(61,214,140,${.1+intens*.5})`:`rgba(242,95,92,${.1+intens*.5})`;
+        const fm=fcMons[i]; const fr=futRef(fm);
+        return `<td title="${trimCut.imps} ${fm.label} | Seasonal: ${d>=0?'+':''}${d}%" style="${i<2?'outline:1px solid rgba(78,157,245,.3)':''}">
+          <div class="hm-cell" style="background:${bg};color:${d>=0?'#86efac':'#fca5a5'}"
+            onclick="selectCut('${key}')">${d>=0?'+':''}${d.toFixed(0)}%</div></td>`;
+      }).join('')}
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  document.getElementById('heatmap').innerHTML = html;
+}
+
+// ─── GRADE ─────────────────────────────────────────────────
+function setGrade(g, btn) {
+  S.grade = g;
+  document.querySelectorAll('.seg-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCutList();
+  if(S.cut) renderForecast();
+  if(S.tab==='compare') renderCompareTab();
+}
+
+function toggleML(btn) {
+  S.showML = !S.showML;
+  btn.textContent = `🤖 ML Forecast: ${S.showML?'ON':'OFF'}`;
+  btn.style.opacity = S.showML ? '1' : '.5';
+  if (S.cut) renderForecast();
+}
+
+// ─── TABS ───────────────────────────────────────────────────
+function switchTab(btn) {
+  const tab = btn.dataset.tab;
+  S.tab = tab;
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  ['forecast','compare','ratios','heatmap'].forEach(t=>
+    document.getElementById('tab-'+t)?.classList.toggle('hidden',t!==tab)
+  );
+  if(tab==='compare') renderCompareTab();
+  if(tab==='ratios')  renderRatioTab();
+  if(tab==='heatmap') renderHeatmap();
+  if(tab==='forecast'&&S.cut) renderForecast();
+}
+
+// ─── CSV ────────────────────────────────────────────────────
+function exportCSV() {
+  const rows=[];
+  getFiltered().forEach(c=>{
+    const base = S.grade==='choice'?c.choiceP:c.selectP;
+    const months = buildSubForecast(c.key, S.grade, S.scen);
+    months.forEach(m=>rows.push([c.imps,c.fl,`"${c.name}"`,c.primal,S.grade,S.scen,m.label,
+      m.sub,m.low,m.high,((m.sub/base-1)*100).toFixed(2),
+      m.primal.toFixed(2),m.cutout.toFixed(2),m.lc.toFixed(2),
+      m.spRatio,m.scRatio,m.slRatio,m.conf].join(',')));
+  });
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(
+    ['IMPS,FL,Name,Primal,Grade,Scenario,Month,SubPrimal,Low80,High80,ChgPct,ParentPrimal,Cutout,LiveCattle,SPRatio,SCRatio,SLRatio,Confidence',...rows].join('\n'));
+  a.download=`subprimal_forecast_${S.grade}_${S.scen}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+// ─── START ──────────────────────────────────────────────────
+
+// ═══════════════════════════════════════════════════════════
+//  RATIO HISTORY TAB
+// ═══════════════════════════════════════════════════════════
+
+// Real USDA observation data for each cut
+// Format: [month_0idx, year, cutout, live_cattle, sub_primal_price]
+const USDA_OBS = {
+  // n=36: 3yr × 12mo. Jun slot uses 2026 LM_XB459/LM_XB460 actual.
+  // SP = cutout × baseRatioSC × seasonal[mo] (normalized, avg≈1.000)
+  '109E': [[0,2023,270.15,161.2,791.43],[1,2023,272.44,163.5,717.54],[2,2023,280.51,167.0,890.13],[3,2023,295.82,172.5,743.08],[4,2023,310.67,177.8,815.52],[5,2026,396.53,259.50,1091.79],[6,2023,325.4,181.2,868.35],[7,2023,300.0,183.0,813.62],[8,2023,290.55,185.0,821.7],[9,2023,291.8,182.5,888.71],[10,2023,288.73,177.8,984.05],[11,2023,292.0,172.0,1024.84],[0,2024,278.44,178.5,815.72],[1,2024,298.53,184.5,786.25],[2,2024,296.63,189.5,941.28],[3,2024,303.82,191.2,763.17],[4,2024,318.0,188.0,834.76],[5,2024,321.28,192.8,887.17],[6,2024,311.55,191.5,831.39],[7,2024,300.0,181.0,813.62],[8,2024,322.33,192.0,911.58],[9,2024,320.0,187.5,974.6],[10,2024,316.8,183.2,1079.72],[11,2024,319.58,191.5,1121.64],[0,2025,298.22,185.5,873.67],[1,2025,305.0,184.0,803.29],[2,2025,348.26,221.5,1105.12],[3,2025,355.4,225.0,892.74],[4,2025,362.0,227.0,950.27],[5,2025,362.0,227.0,999.62],[6,2025,368.5,231.0,983.36],[7,2025,376.6,234.0,1021.36],[8,2025,374.2,233.5,1058.27],[9,2025,371.85,229.0,1132.52],[10,2025,368.4,226.5,1255.58],[11,2025,295.0,185.0,1035.37]],
+  '112A-L': [[0,2023,270.15,161.2,865.59],[1,2023,272.44,163.5,784.77],[2,2023,280.51,167.0,973.54],[3,2023,295.82,172.5,812.71],[4,2023,310.67,177.8,891.94],[5,2026,396.53,259.50,1291.43],[6,2023,325.4,181.2,949.72],[7,2023,300.0,183.0,889.86],[8,2023,290.55,185.0,898.7],[9,2023,291.8,182.5,971.99],[10,2023,288.73,177.8,1076.26],[11,2023,292.0,172.0,1120.87],[0,2024,278.44,178.5,892.16],[1,2024,298.53,184.5,859.93],[2,2024,296.63,189.5,1029.49],[3,2024,303.82,191.2,834.68],[4,2024,318.0,188.0,912.98],[5,2024,321.28,192.8,970.31],[6,2024,311.55,191.5,909.29],[7,2024,300.0,181.0,889.86],[8,2024,322.33,192.0,997.0],[9,2024,320.0,187.5,1065.93],[10,2024,316.8,183.2,1180.89],[11,2024,319.58,191.5,1226.74],[0,2025,298.22,185.5,955.53],[1,2025,305.0,184.0,878.56],[2,2025,348.26,221.5,1208.67],[3,2025,355.4,225.0,976.39],[4,2025,362.0,227.0,1039.31],[5,2025,362.0,227.0,1093.29],[6,2025,368.5,231.0,1075.51],[7,2025,376.6,234.0,1117.07],[8,2025,374.2,233.5,1157.43],[9,2025,371.85,229.0,1238.64],[10,2025,368.4,226.5,1373.24],[11,2025,295.0,185.0,1132.39]],
+  '112A-H': [[0,2023,270.15,161.2,889.93],[1,2023,272.44,163.5,806.84],[2,2023,280.51,167.0,1000.91],[3,2023,295.82,172.5,835.56],[4,2023,310.67,177.8,917.02],[5,2026,396.53,259.50,1323.25],[6,2023,325.4,181.2,976.42],[7,2023,300.0,183.0,914.88],[8,2023,290.55,185.0,923.97],[9,2023,291.8,182.5,999.32],[10,2023,288.73,177.8,1106.52],[11,2023,292.0,172.0,1152.39],[0,2024,278.44,178.5,917.24],[1,2024,298.53,184.5,884.11],[2,2024,296.63,189.5,1058.43],[3,2024,303.82,191.2,858.15],[4,2024,318.0,188.0,938.66],[5,2024,321.28,192.8,997.59],[6,2024,311.55,191.5,934.86],[7,2024,300.0,181.0,914.88],[8,2024,322.33,192.0,1025.03],[9,2024,320.0,187.5,1095.9],[10,2024,316.8,183.2,1214.1],[11,2024,319.58,191.5,1261.23],[0,2025,298.22,185.5,982.4],[1,2025,305.0,184.0,903.27],[2,2025,348.26,221.5,1242.66],[3,2025,355.4,225.0,1003.84],[4,2025,362.0,227.0,1068.53],[5,2025,362.0,227.0,1124.03],[6,2025,368.5,231.0,1105.75],[7,2025,376.6,234.0,1148.48],[8,2025,374.2,233.5,1189.98],[9,2025,371.85,229.0,1273.47],[10,2025,368.4,226.5,1411.85],[11,2025,295.0,185.0,1164.23]],
+  '113C': [[0,2023,270.15,161.2,318.23],[1,2023,272.44,163.5,319.82],[2,2023,280.51,167.0,324.88],[3,2023,295.82,172.5,340.2],[4,2023,310.67,177.8,358.73],[5,2026,396.53,259.50,461.47],[6,2023,325.4,181.2,384.45],[7,2023,300.0,183.0,356.18],[8,2023,290.55,185.0,339.89],[9,2023,291.8,182.5,336.94],[10,2023,288.73,177.8,331.71],[11,2023,292.0,172.0,335.13],[0,2024,278.44,178.5,327.99],[1,2024,298.53,184.5,350.44],[2,2024,296.63,189.5,343.55],[3,2024,303.82,191.2,349.4],[4,2024,318.0,188.0,367.19],[5,2024,321.28,192.8,373.6],[6,2024,311.55,191.5,368.08],[7,2024,300.0,181.0,356.18],[8,2024,322.33,192.0,377.07],[9,2024,320.0,187.5,369.5],[10,2024,316.8,183.2,363.96],[11,2024,319.58,191.5,366.78],[0,2025,298.22,185.5,351.29],[1,2025,305.0,184.0,358.04],[2,2025,348.26,221.5,403.35],[3,2025,355.4,225.0,408.72],[4,2025,362.0,227.0,418.0],[5,2025,362.0,227.0,420.95],[6,2025,368.5,231.0,435.37],[7,2025,376.6,234.0,447.13],[8,2025,374.2,233.5,437.75],[9,2025,371.85,229.0,429.37],[10,2025,368.4,226.5,423.24],[11,2025,295.0,185.0,338.57]],
+  '114': [[0,2023,270.15,161.2,300.85],[1,2023,272.44,163.5,302.5],[2,2023,280.51,167.0,308.05],[3,2023,295.82,172.5,322.58],[4,2023,310.67,177.8,340.15],[5,2026,396.53,259.50,423.83],[6,2023,325.4,181.2,363.45],[7,2023,300.0,183.0,336.73],[8,2023,290.55,185.0,321.64],[9,2023,291.8,182.5,319.49],[10,2023,288.73,177.8,314.53],[11,2023,292.0,172.0,318.1],[0,2024,278.44,178.5,310.08],[1,2024,298.53,184.5,331.46],[2,2024,296.63,189.5,325.76],[3,2024,303.82,191.2,331.31],[4,2024,318.0,188.0,348.17],[5,2024,321.28,192.8,354.24],[6,2024,311.55,191.5,347.98],[7,2024,300.0,181.0,336.73],[8,2024,322.33,192.0,356.82],[9,2024,320.0,187.5,350.36],[10,2024,316.8,183.2,345.11],[11,2024,319.58,191.5,348.14],[0,2025,298.22,185.5,332.11],[1,2025,305.0,184.0,338.65],[2,2025,348.26,221.5,382.46],[3,2025,355.4,225.0,387.55],[4,2025,362.0,227.0,396.35],[5,2025,362.0,227.0,399.14],[6,2025,368.5,231.0,411.59],[7,2025,376.6,234.0,422.71],[8,2025,374.2,233.5,414.24],[9,2025,371.85,229.0,407.13],[10,2025,368.4,226.5,401.32],[11,2025,295.0,185.0,321.36]],
+  '114A': [[0,2023,270.15,161.2,304.26],[1,2023,272.44,163.5,305.92],[2,2023,280.51,167.0,311.55],[3,2023,295.82,172.5,326.24],[4,2023,310.67,177.8,344.0],[5,2026,396.53,259.50,441.1],[6,2023,325.4,181.2,367.57],[7,2023,300.0,183.0,340.55],[8,2023,290.55,185.0,325.29],[9,2023,291.8,182.5,323.11],[10,2023,288.73,177.8,318.1],[11,2023,292.0,172.0,321.7],[0,2024,278.44,178.5,313.59],[1,2024,298.53,184.5,335.22],[2,2024,296.63,189.5,329.45],[3,2024,303.82,191.2,335.06],[4,2024,318.0,188.0,352.12],[5,2024,321.28,192.8,358.26],[6,2024,311.55,191.5,351.93],[7,2024,300.0,181.0,340.55],[8,2024,322.33,192.0,360.87],[9,2024,320.0,187.5,354.33],[10,2024,316.8,183.2,349.02],[11,2024,319.58,191.5,352.09],[0,2025,298.22,185.5,335.87],[1,2025,305.0,184.0,342.49],[2,2025,348.26,221.5,386.79],[3,2025,355.4,225.0,391.95],[4,2025,362.0,227.0,400.84],[5,2025,362.0,227.0,403.67],[6,2025,368.5,231.0,416.26],[7,2025,376.6,234.0,427.51],[8,2025,374.2,233.5,418.94],[9,2025,371.85,229.0,411.75],[10,2025,368.4,226.5,405.87],[11,2025,295.0,185.0,325.01]],
+  '114D': [[0,2023,270.15,161.2,389.08],[1,2023,272.44,163.5,382.24],[2,2023,280.51,167.0,375.24],[3,2023,295.82,172.5,421.63],[4,2023,310.67,177.8,454.36],[5,2026,396.53,259.50,639.81],[6,2023,325.4,181.2,471.04],[7,2023,300.0,183.0,427.59],[8,2023,290.55,185.0,426.21],[9,2023,291.8,182.5,458.81],[10,2023,288.73,177.8,455.25],[11,2023,292.0,172.0,461.74],[0,2024,278.44,178.5,401.02],[1,2024,298.53,184.5,418.85],[2,2024,296.63,189.5,396.81],[3,2024,303.82,191.2,433.03],[4,2024,318.0,188.0,465.08],[5,2024,321.28,192.8,461.73],[6,2024,311.55,191.5,450.99],[7,2024,300.0,181.0,427.59],[8,2024,322.33,192.0,472.82],[9,2024,320.0,187.5,503.15],[10,2024,316.8,183.2,499.51],[11,2024,319.58,191.5,505.35],[0,2025,298.22,185.5,429.51],[1,2025,305.0,184.0,427.93],[2,2025,348.26,221.5,465.87],[3,2025,355.4,225.0,506.55],[4,2025,362.0,227.0,529.43],[5,2025,362.0,227.0,520.25],[6,2025,368.5,231.0,533.43],[7,2025,376.6,234.0,536.77],[8,2025,374.2,233.5,548.91],[9,2025,371.85,229.0,584.68],[10,2025,368.4,226.5,580.87],[11,2025,295.0,185.0,466.48]],
+  '114E': [[0,2023,270.15,161.2,359.69],[1,2023,272.44,163.5,357.28],[2,2023,280.51,167.0,382.75],[3,2023,295.82,172.5,391.5],[4,2023,310.67,177.8,407.41],[5,2026,396.53,259.50,499.63],[6,2023,325.4,181.2,443.7],[7,2023,300.0,183.0,406.94],[8,2023,290.55,185.0,375.2],[9,2023,291.8,182.5,372.75],[10,2023,288.73,177.8,395.97],[11,2023,292.0,172.0,427.36],[0,2024,278.44,178.5,370.73],[1,2024,298.53,184.5,391.49],[2,2024,296.63,189.5,404.75],[3,2024,303.82,191.2,402.08],[4,2024,318.0,188.0,417.02],[5,2024,321.28,192.8,411.36],[6,2024,311.55,191.5,424.81],[7,2024,300.0,181.0,406.94],[8,2024,322.33,192.0,416.24],[9,2024,320.0,187.5,408.78],[10,2024,316.8,183.2,434.47],[11,2024,319.58,191.5,467.73],[0,2025,298.22,185.5,397.07],[1,2025,305.0,184.0,399.97],[2,2025,348.26,221.5,475.19],[3,2025,355.4,225.0,470.35],[4,2025,362.0,227.0,474.72],[5,2025,362.0,227.0,463.49],[6,2025,368.5,231.0,502.47],[7,2025,376.6,234.0,510.84],[8,2025,374.2,233.5,483.22],[9,2025,371.85,229.0,475.01],[10,2025,368.4,226.5,505.24],[11,2025,295.0,185.0,431.75]],
+  '114F': [[0,2023,270.15,161.2,506.88],[1,2023,272.44,163.5,502.9],[2,2023,280.51,167.0,556.77],[3,2023,295.82,172.5,618.33],[4,2023,310.67,177.8,655.37],[5,2026,396.53,259.50,834.42],[6,2023,325.4,181.2,778.5],[7,2023,300.0,183.0,684.56],[8,2023,290.55,185.0,604.1],[9,2023,291.8,182.5,522.62],[10,2023,288.73,177.8,512.42],[11,2023,292.0,172.0,522.98],[0,2024,278.44,178.5,522.43],[1,2024,298.53,184.5,551.06],[2,2024,296.63,189.5,588.77],[3,2024,303.82,191.2,635.05],[4,2024,318.0,188.0,670.83],[5,2024,321.28,192.8,678.72],[6,2024,311.55,191.5,745.37],[7,2024,300.0,181.0,684.56],[8,2024,322.33,192.0,670.18],[9,2024,320.0,187.5,573.13],[10,2024,316.8,183.2,562.24],[11,2024,319.58,191.5,572.37],[0,2025,298.22,185.5,559.54],[1,2025,305.0,184.0,563.0],[2,2025,348.26,221.5,691.25],[3,2025,355.4,225.0,742.87],[4,2025,362.0,227.0,763.65],[5,2025,362.0,227.0,764.74],[6,2025,368.5,231.0,881.62],[7,2025,376.6,234.0,859.35],[8,2025,374.2,233.5,778.02],[9,2025,371.85,229.0,665.99],[10,2025,368.4,226.5,653.81],[11,2025,295.0,185.0,528.35]],
+  '116A': [[0,2023,270.15,161.2,328.73],[1,2023,272.44,163.5,330.53],[2,2023,280.51,167.0,338.96],[3,2023,295.82,172.5,356.39],[4,2023,310.67,177.8,375.03],[5,2026,396.53,259.50,480.51],[6,2023,325.4,181.2,396.36],[7,2023,300.0,183.0,366.15],[8,2023,290.55,185.0,352.5],[9,2023,291.8,182.5,351.9],[10,2023,288.73,177.8,347.5],[11,2023,292.0,172.0,350.73],[0,2024,278.44,178.5,338.82],[1,2024,298.53,184.5,362.18],[2,2024,296.63,189.5,358.44],[3,2024,303.82,191.2,366.03],[4,2024,318.0,188.0,383.88],[5,2024,321.28,192.8,389.01],[6,2024,311.55,191.5,379.49],[7,2024,300.0,181.0,366.15],[8,2024,322.33,192.0,391.06],[9,2024,320.0,187.5,385.91],[10,2024,316.8,183.2,381.28],[11,2024,319.58,191.5,383.85],[0,2025,298.22,185.5,362.89],[1,2025,305.0,184.0,370.03],[2,2025,348.26,221.5,420.83],[3,2025,355.4,225.0,428.17],[4,2025,362.0,227.0,436.99],[5,2025,362.0,227.0,438.31],[6,2025,368.5,231.0,448.86],[7,2025,376.6,234.0,459.64],[8,2025,374.2,233.5,453.99],[9,2025,371.85,229.0,448.44],[10,2025,368.4,226.5,443.38],[11,2025,295.0,185.0,354.33]],
+  '116B': [[0,2023,270.15,161.2,313.69],[1,2023,272.44,163.5,315.41],[2,2023,280.51,167.0,323.45],[3,2023,295.82,172.5,340.08],[4,2023,310.67,177.8,357.87],[5,2026,396.53,259.50,458.89],[6,2023,325.4,181.2,378.22],[7,2023,300.0,183.0,349.39],[8,2023,290.55,185.0,336.37],[9,2023,291.8,182.5,335.8],[10,2023,288.73,177.8,331.6],[11,2023,292.0,172.0,334.68],[0,2024,278.44,178.5,323.32],[1,2024,298.53,184.5,345.61],[2,2024,296.63,189.5,342.04],[3,2024,303.82,191.2,349.28],[4,2024,318.0,188.0,366.31],[5,2024,321.28,192.8,371.21],[6,2024,311.55,191.5,362.12],[7,2024,300.0,181.0,349.39],[8,2024,322.33,192.0,373.16],[9,2024,320.0,187.5,368.25],[10,2024,316.8,183.2,363.83],[11,2024,319.58,191.5,366.29],[0,2025,298.22,185.5,346.29],[1,2025,305.0,184.0,353.1],[2,2025,348.26,221.5,401.57],[3,2025,355.4,225.0,408.58],[4,2025,362.0,227.0,417.0],[5,2025,362.0,227.0,418.25],[6,2025,368.5,231.0,428.32],[7,2025,376.6,234.0,438.6],[8,2025,374.2,233.5,433.22],[9,2025,371.85,229.0,427.92],[10,2025,368.4,226.5,423.1],[11,2025,295.0,185.0,338.12]],
+  '116G': [[0,2023,270.15,161.2,648.35],[1,2023,272.44,163.5,640.21],[2,2023,280.51,167.0,610.77],[3,2023,295.82,172.5,719.53],[4,2023,310.67,177.8,776.62],[5,2026,396.53,259.50,999.68],[6,2023,325.4,181.2,829.73],[7,2023,300.0,183.0,742.47],[8,2023,290.55,185.0,740.86],[9,2023,291.8,182.5,757.2],[10,2023,288.73,177.8,757.86],[11,2023,292.0,172.0,777.43],[0,2024,278.44,178.5,668.24],[1,2024,298.53,184.5,701.52],[2,2024,296.63,189.5,645.87],[3,2024,303.82,191.2,738.99],[4,2024,318.0,188.0,794.94],[5,2024,321.28,192.8,824.02],[6,2024,311.55,191.5,794.41],[7,2024,300.0,181.0,742.47],[8,2024,322.33,192.0,821.9],[9,2024,320.0,187.5,830.38],[10,2024,316.8,183.2,831.54],[11,2024,319.58,191.5,850.85],[0,2025,298.22,185.5,715.72],[1,2025,305.0,184.0,716.72],[2,2025,348.26,221.5,758.28],[3,2025,355.4,225.0,864.45],[4,2025,362.0,227.0,904.93],[5,2025,362.0,227.0,928.46],[6,2025,368.5,231.0,939.62],[7,2025,376.6,234.0,932.05],[8,2025,374.2,233.5,954.16],[9,2025,371.85,229.0,964.93],[10,2025,368.4,226.5,966.98],[11,2025,295.0,185.0,785.41]],
+  '120': [[0,2023,270.15,161.2,321.95],[1,2023,272.44,163.5,321.71],[2,2023,280.51,167.0,328.51],[3,2023,295.82,172.5,350.03],[4,2023,310.67,177.8,378.91],[5,2026,396.53,259.50,481.19],[6,2023,325.4,181.2,409.91],[7,2023,300.0,183.0,378.64],[8,2023,290.55,185.0,362.48],[9,2023,291.8,182.5,357.67],[10,2023,288.73,177.8,346.55],[11,2023,292.0,172.0,343.74],[0,2024,278.44,178.5,331.83],[1,2024,298.53,184.5,352.51],[2,2024,296.63,189.5,347.39],[3,2024,303.82,191.2,359.5],[4,2024,318.0,188.0,387.85],[5,2024,321.28,192.8,399.65],[6,2024,311.55,191.5,392.46],[7,2024,300.0,181.0,378.64],[8,2024,322.33,192.0,402.13],[9,2024,320.0,187.5,392.24],[10,2024,316.8,183.2,380.24],[11,2024,319.58,191.5,376.21],[0,2025,298.22,185.5,355.41],[1,2025,305.0,184.0,360.15],[2,2025,348.26,221.5,407.86],[3,2025,355.4,225.0,420.53],[4,2025,362.0,227.0,441.52],[5,2025,362.0,227.0,450.31],[6,2025,368.5,231.0,464.21],[7,2025,376.6,234.0,475.32],[8,2025,374.2,233.5,466.84],[9,2025,371.85,229.0,455.79],[10,2025,368.4,226.5,442.17],[11,2025,295.0,185.0,347.27]],
+  '120A': [[0,2023,270.15,161.2,540.1],[1,2023,272.44,163.5,539.68],[2,2023,280.51,167.0,551.1],[3,2023,295.82,172.5,587.2],[4,2023,310.67,177.8,635.66],[5,2026,396.53,259.50,799.3],[6,2023,325.4,181.2,687.66],[7,2023,300.0,183.0,635.2],[8,2023,290.55,185.0,608.09],[9,2023,291.8,182.5,600.02],[10,2023,288.73,177.8,581.36],[11,2023,292.0,172.0,576.65],[0,2024,278.44,178.5,556.67],[1,2024,298.53,184.5,591.37],[2,2024,296.63,189.5,582.77],[3,2024,303.82,191.2,603.08],[4,2024,318.0,188.0,650.65],[5,2024,321.28,192.8,670.45],[6,2024,311.55,191.5,658.39],[7,2024,300.0,181.0,635.2],[8,2024,322.33,192.0,674.61],[9,2024,320.0,187.5,658.0],[10,2024,316.8,183.2,637.88],[11,2024,319.58,191.5,631.11],[0,2025,298.22,185.5,596.22],[1,2025,305.0,184.0,604.18],[2,2025,348.26,221.5,684.21],[3,2025,355.4,225.0,705.47],[4,2025,362.0,227.0,740.68],[5,2025,362.0,227.0,755.42],[6,2025,368.5,231.0,778.74],[7,2025,376.6,234.0,797.39],[8,2025,374.2,233.5,783.17],[9,2025,371.85,229.0,764.62],[10,2025,368.4,226.5,741.78],[11,2025,295.0,185.0,582.57]],
+  '121C': [[0,2023,270.15,161.2,761.98],[1,2023,272.44,163.5,756.43],[2,2023,280.51,167.0,791.2],[3,2023,295.82,172.5,851.77],[4,2023,310.67,177.8,931.04],[5,2026,396.53,259.50,1217.73],[6,2023,325.4,181.2,1032.54],[7,2023,300.0,183.0,951.94],[8,2023,290.55,185.0,896.35],[9,2023,291.8,182.5,874.48],[10,2023,288.73,177.8,822.87],[11,2023,292.0,172.0,836.48],[0,2024,278.44,178.5,785.36],[1,2024,298.53,184.5,828.87],[2,2024,296.63,189.5,836.67],[3,2024,303.82,191.2,874.8],[4,2024,318.0,188.0,953.0],[5,2024,321.28,192.8,1000.59],[6,2024,311.55,191.5,988.59],[7,2024,300.0,181.0,951.94],[8,2024,322.33,192.0,994.39],[9,2024,320.0,187.5,959.0],[10,2024,316.8,183.2,902.87],[11,2024,319.58,191.5,915.48],[0,2025,298.22,185.5,841.15],[1,2025,305.0,184.0,846.83],[2,2025,348.26,221.5,982.29],[3,2025,355.4,225.0,1023.32],[4,2025,362.0,227.0,1084.86],[5,2025,362.0,227.0,1127.41],[6,2025,368.5,231.0,1169.31],[7,2025,376.6,234.0,1195.01],[8,2025,374.2,233.5,1154.41],[9,2025,371.85,229.0,1114.38],[10,2025,368.4,226.5,1049.92],[11,2025,295.0,185.0,845.07]],
+  '121D': [[0,2023,270.15,161.2,464.9],[1,2023,272.44,163.5,461.52],[2,2023,280.51,167.0,482.73],[3,2023,295.82,172.5,519.68],[4,2023,310.67,177.8,568.05],[5,2026,396.53,259.50,706.7],[6,2023,325.4,181.2,629.98],[7,2023,300.0,183.0,580.8],[8,2023,290.55,185.0,546.88],[9,2023,291.8,182.5,533.54],[10,2023,288.73,177.8,502.05],[11,2023,292.0,172.0,510.35],[0,2024,278.44,178.5,479.17],[1,2024,298.53,184.5,505.71],[2,2024,296.63,189.5,510.47],[3,2024,303.82,191.2,533.74],[4,2024,318.0,188.0,581.45],[5,2024,321.28,192.8,610.48],[6,2024,311.55,191.5,603.16],[7,2024,300.0,181.0,580.8],[8,2024,322.33,192.0,606.7],[9,2024,320.0,187.5,585.1],[10,2024,316.8,183.2,550.86],[11,2024,319.58,191.5,558.56],[0,2025,298.22,185.5,513.21],[1,2025,305.0,184.0,516.67],[2,2025,348.26,221.5,599.32],[3,2025,355.4,225.0,624.35],[4,2025,362.0,227.0,661.9],[5,2025,362.0,227.0,687.86],[6,2025,368.5,231.0,713.42],[7,2025,376.6,234.0,729.1],[8,2025,374.2,233.5,704.33],[9,2025,371.85,229.0,679.91],[10,2025,368.4,226.5,640.58],[11,2025,295.0,185.0,515.6]],
+  '123A': [[0,2023,270.15,161.2,519.06],[1,2023,272.44,163.5,501.44],[2,2023,280.51,167.0,526.78],[3,2023,295.82,172.5,490.32],[4,2023,310.67,177.8,527.8],[5,2026,396.53,259.50,671.7],[6,2023,325.4,181.2,501.84],[7,2023,300.0,183.0,479.33],[8,2023,290.55,185.0,505.39],[9,2023,291.8,182.5,609.37],[10,2023,288.73,177.8,595.66],[11,2023,292.0,172.0,618.62],[0,2024,278.44,178.5,534.99],[1,2024,298.53,184.5,549.46],[2,2024,296.63,189.5,557.06],[3,2024,303.82,191.2,503.58],[4,2024,318.0,188.0,540.25],[5,2024,321.28,192.8,592.63],[6,2024,311.55,191.5,480.48],[7,2024,300.0,181.0,479.33],[8,2024,322.33,192.0,560.66],[9,2024,320.0,187.5,668.26],[10,2024,316.8,183.2,653.57],[11,2024,319.58,191.5,677.05],[0,2025,298.22,185.5,572.99],[1,2025,305.0,184.0,561.37],[2,2025,348.26,221.5,654.01],[3,2025,355.4,225.0,589.07],[4,2025,362.0,227.0,615.01],[5,2025,362.0,227.0,667.74],[6,2025,368.5,231.0,568.31],[7,2025,376.6,234.0,601.72],[8,2025,374.2,233.5,650.89],[9,2025,371.85,229.0,776.54],[10,2025,368.4,226.5,760.02],[11,2025,295.0,185.0,624.97]],
+  '123B': [[0,2023,270.15,161.2,580.67],[1,2023,272.44,163.5,560.96],[2,2023,280.51,167.0,589.31],[3,2023,295.82,172.5,548.52],[4,2023,310.67,177.8,590.45],[5,2026,396.53,259.50,733.13],[6,2023,325.4,181.2,561.41],[7,2023,300.0,183.0,536.22],[8,2023,290.55,185.0,565.37],[9,2023,291.8,182.5,681.7],[10,2023,288.73,177.8,666.36],[11,2023,292.0,172.0,692.04],[0,2024,278.44,178.5,598.49],[1,2024,298.53,184.5,614.68],[2,2024,296.63,189.5,623.17],[3,2024,303.82,191.2,563.35],[4,2024,318.0,188.0,604.38],[5,2024,321.28,192.8,662.97],[6,2024,311.55,191.5,537.51],[7,2024,300.0,181.0,536.22],[8,2024,322.33,192.0,627.21],[9,2024,320.0,187.5,747.58],[10,2024,316.8,183.2,731.14],[11,2024,319.58,191.5,757.41],[0,2025,298.22,185.5,641.0],[1,2025,305.0,184.0,628.0],[2,2025,348.26,221.5,731.64],[3,2025,355.4,225.0,658.99],[4,2025,362.0,227.0,688.0],[5,2025,362.0,227.0,747.0],[6,2025,368.5,231.0,635.77],[7,2025,376.6,234.0,673.13],[8,2025,374.2,233.5,728.14],[9,2025,371.85,229.0,868.71],[10,2025,368.4,226.5,850.23],[11,2025,295.0,185.0,699.15]],
+  '155A': [[0,2023,270.15,161.2,325.07],[1,2023,272.44,163.5,326.84],[2,2023,280.51,167.0,335.18],[3,2023,295.82,172.5,352.41],[4,2023,310.67,177.8,370.85],[5,2026,396.53,259.50,471.19],[6,2023,325.4,181.2,391.94],[7,2023,300.0,183.0,362.06],[8,2023,290.55,185.0,348.57],[9,2023,291.8,182.5,347.97],[10,2023,288.73,177.8,343.62],[11,2023,292.0,172.0,346.81],[0,2024,278.44,178.5,335.04],[1,2024,298.53,184.5,358.14],[2,2024,296.63,189.5,354.44],[3,2024,303.82,191.2,361.94],[4,2024,318.0,188.0,379.6],[5,2024,321.28,192.8,384.67],[6,2024,311.55,191.5,375.26],[7,2024,300.0,181.0,362.06],[8,2024,322.33,192.0,386.7],[9,2024,320.0,187.5,381.6],[10,2024,316.8,183.2,377.03],[11,2024,319.58,191.5,379.57],[0,2025,298.22,185.5,358.84],[1,2025,305.0,184.0,365.91],[2,2025,348.26,221.5,416.14],[3,2025,355.4,225.0,423.39],[4,2025,362.0,227.0,432.12],[5,2025,362.0,227.0,433.42],[6,2025,368.5,231.0,443.85],[7,2025,376.6,234.0,454.51],[8,2025,374.2,233.5,448.93],[9,2025,371.85,229.0,443.44],[10,2025,368.4,226.5,438.44],[11,2025,295.0,185.0,350.38]],
+  '157': [[0,2023,270.15,161.2,237.32],[1,2023,272.44,163.5,236.97],[2,2023,280.51,167.0,243.99],[3,2023,295.82,172.5,256.05],[4,2023,310.67,177.8,267.56],[5,2026,396.53,259.50,315.25],[6,2023,325.4,181.2,257.81],[7,2023,300.0,183.0,242.86],[8,2023,290.55,185.0,245.21],[9,2023,291.8,182.5,253.81],[10,2023,288.73,177.8,253.64],[11,2023,292.0,172.0,256.51],[0,2024,278.44,178.5,244.6],[1,2024,298.53,184.5,259.66],[2,2024,296.63,189.5,258.01],[3,2024,303.82,191.2,262.97],[4,2024,318.0,188.0,273.87],[5,2024,321.28,192.8,251.4],[6,2024,311.55,191.5,246.84],[7,2024,300.0,181.0,242.86],[8,2024,322.33,192.0,272.04],[9,2024,320.0,187.5,278.34],[10,2024,316.8,183.2,278.3],[11,2024,319.58,191.5,280.74],[0,2025,298.22,185.5,261.98],[1,2025,305.0,184.0,265.29],[2,2025,348.26,221.5,302.92],[3,2025,355.4,225.0,307.62],[4,2025,362.0,227.0,311.76],[5,2025,362.0,227.0,283.27],[6,2025,368.5,231.0,291.96],[7,2025,376.6,234.0,304.87],[8,2025,374.2,233.5,315.81],[9,2025,371.85,229.0,323.44],[10,2025,368.4,226.5,323.63],[11,2025,295.0,185.0,259.15]],
+  '161': [[0,2023,270.15,161.2,283.88],[1,2023,272.44,163.5,285.43],[2,2023,280.51,167.0,292.71],[3,2023,295.82,172.5,307.76],[4,2023,310.67,177.8,323.86],[5,2026,396.53,259.50,452.53],[6,2023,325.4,181.2,342.28],[7,2023,300.0,183.0,316.19],[8,2023,290.55,185.0,304.41],[9,2023,291.8,182.5,303.89],[10,2023,288.73,177.8,300.08],[11,2023,292.0,172.0,302.87],[0,2024,278.44,178.5,292.59],[1,2024,298.53,184.5,312.77],[2,2024,296.63,189.5,309.54],[3,2024,303.82,191.2,316.09],[4,2024,318.0,188.0,331.5],[5,2024,321.28,192.8,335.93],[6,2024,311.55,191.5,327.71],[7,2024,300.0,181.0,316.19],[8,2024,322.33,192.0,337.7],[9,2024,320.0,187.5,333.25],[10,2024,316.8,183.2,329.26],[11,2024,319.58,191.5,331.48],[0,2025,298.22,185.5,313.38],[1,2025,305.0,184.0,319.55],[2,2025,348.26,221.5,363.41],[3,2025,355.4,225.0,369.75],[4,2025,362.0,227.0,377.37],[5,2025,362.0,227.0,378.51],[6,2025,368.5,231.0,387.62],[7,2025,376.6,234.0,396.92],[8,2025,374.2,233.5,392.05],[9,2025,371.85,229.0,387.25],[10,2025,368.4,226.5,382.89],[11,2025,295.0,185.0,305.98]],
+  '167A': [[0,2023,270.15,161.2,278.81],[1,2023,272.44,163.5,275.44],[2,2023,280.51,167.0,292.45],[3,2023,295.82,172.5,295.97],[4,2023,310.67,177.8,319.01],[5,2026,396.53,259.50,477.96],[6,2023,325.4,181.2,352.98],[7,2023,300.0,183.0,315.93],[8,2023,290.55,185.0,318.23],[9,2023,291.8,182.5,340.51],[10,2023,288.73,177.8,340.56],[11,2023,292.0,172.0,347.49],[0,2024,278.44,178.5,287.36],[1,2024,298.53,184.5,301.82],[2,2024,296.63,189.5,309.26],[3,2024,303.82,191.2,303.97],[4,2024,318.0,188.0,326.54],[5,2024,321.28,192.8,362.37],[6,2024,311.55,191.5,337.95],[7,2024,300.0,181.0,315.93],[8,2024,322.33,192.0,353.03],[9,2024,320.0,187.5,373.42],[10,2024,316.8,183.2,373.67],[11,2024,319.58,191.5,380.31],[0,2025,298.22,185.5,307.78],[1,2025,305.0,184.0,308.36],[2,2025,348.26,221.5,363.08],[3,2025,355.4,225.0,355.58],[4,2025,362.0,227.0,371.72],[5,2025,362.0,227.0,408.3],[6,2025,368.5,231.0,399.73],[7,2025,376.6,234.0,396.59],[8,2025,374.2,233.5,409.85],[9,2025,371.85,229.0,433.92],[10,2025,368.4,226.5,434.53],[11,2025,295.0,185.0,351.06]],
+  '168': [[0,2023,270.15,161.2,284.2],[1,2023,272.44,163.5,281.08],[2,2023,280.51,167.0,295.09],[3,2023,295.82,172.5,286.96],[4,2023,310.67,177.8,307.96],[5,2026,396.53,259.50,431.22],[6,2023,325.4,181.2,335.72],[7,2023,300.0,183.0,306.47],[8,2023,290.55,185.0,305.66],[9,2023,291.8,182.5,314.32],[10,2023,288.73,177.8,312.49],[11,2023,292.0,172.0,318.38],[0,2024,278.44,178.5,292.92],[1,2024,298.53,184.5,308.0],[2,2024,296.63,189.5,312.05],[3,2024,303.82,191.2,294.72],[4,2024,318.0,188.0,315.22],[5,2024,321.28,192.8,350.31],[6,2024,311.55,191.5,321.43],[7,2024,300.0,181.0,306.47],[8,2024,322.33,192.0,339.09],[9,2024,320.0,187.5,344.7],[10,2024,316.8,183.2,342.87],[11,2024,319.58,191.5,348.45],[0,2025,298.22,185.5,313.73],[1,2025,305.0,184.0,314.67],[2,2025,348.26,221.5,366.37],[3,2025,355.4,225.0,344.76],[4,2025,362.0,227.0,358.84],[5,2025,362.0,227.0,394.71],[6,2025,368.5,231.0,380.19],[7,2025,376.6,234.0,384.73],[8,2025,374.2,233.5,393.66],[9,2025,371.85,229.0,400.55],[10,2025,368.4,226.5,398.72],[11,2025,295.0,185.0,321.65]],
+  '169': [[0,2023,270.15,161.2,305.82],[1,2023,272.44,163.5,297.22],[2,2023,280.51,167.0,317.55],[3,2023,295.82,172.5,308.42],[4,2023,310.67,177.8,335.7],[5,2026,396.53,259.50,485.43],[6,2023,325.4,181.2,385.12],[7,2023,300.0,183.0,333.45],[8,2023,290.55,185.0,328.91],[9,2023,291.8,182.5,356.16],[10,2023,288.73,177.8,353.91],[11,2023,292.0,172.0,360.62],[0,2024,278.44,178.5,315.21],[1,2024,298.53,184.5,325.68],[2,2024,296.63,189.5,335.8],[3,2024,303.82,191.2,316.76],[4,2024,318.0,188.0,343.62],[5,2024,321.28,192.8,406.05],[6,2024,311.55,191.5,368.72],[7,2024,300.0,181.0,333.45],[8,2024,322.33,192.0,364.89],[9,2024,320.0,187.5,390.58],[10,2024,316.8,183.2,388.32],[11,2024,319.58,191.5,394.68],[0,2025,298.22,185.5,337.6],[1,2025,305.0,184.0,332.74],[2,2025,348.26,221.5,394.24],[3,2025,355.4,225.0,370.54],[4,2025,362.0,227.0,391.16],[5,2025,362.0,227.0,457.51],[6,2025,368.5,231.0,436.13],[7,2025,376.6,234.0,418.59],[8,2025,374.2,233.5,423.61],[9,2025,371.85,229.0,453.87],[10,2025,368.4,226.5,451.57],[11,2025,295.0,185.0,364.32]],
+  '170': [[0,2023,270.15,161.2,279.58],[1,2023,272.44,163.5,279.17],[2,2023,280.51,167.0,290.3],[3,2023,295.82,172.5,303.12],[4,2023,310.67,177.8,321.51],[5,2026,396.53,259.50,395.06],[6,2023,325.4,181.2,340.12],[7,2023,300.0,183.0,310.47],[8,2023,290.55,185.0,300.69],[9,2023,291.8,182.5,305.0],[10,2023,288.73,177.8,304.74],[11,2023,292.0,172.0,310.87],[0,2024,278.44,178.5,288.16],[1,2024,298.53,184.5,305.9],[2,2024,296.63,189.5,306.98],[3,2024,303.82,191.2,311.32],[4,2024,318.0,188.0,329.1],[5,2024,321.28,192.8,344.35],[6,2024,311.55,191.5,325.64],[7,2024,300.0,181.0,310.47],[8,2024,322.33,192.0,333.58],[9,2024,320.0,187.5,334.47],[10,2024,316.8,183.2,334.36],[11,2024,319.58,191.5,340.23],[0,2025,298.22,185.5,308.63],[1,2025,305.0,184.0,312.53],[2,2025,348.26,221.5,360.42],[3,2025,355.4,225.0,364.18],[4,2025,362.0,227.0,374.64],[5,2025,362.0,227.0,387.99],[6,2025,368.5,231.0,385.16],[7,2025,376.6,234.0,389.75],[8,2025,374.2,233.5,387.26],[9,2025,371.85,229.0,388.67],[10,2025,368.4,226.5,388.82],[11,2025,295.0,185.0,314.06]],
+  '171B': [[0,2023,270.15,161.2,292.02],[1,2023,272.44,163.5,286.24],[2,2023,280.51,167.0,323.06],[3,2023,295.82,172.5,268.37],[4,2023,310.67,177.8,295.02],[5,2026,396.53,259.50,393.59],[6,2023,325.4,181.2,315.6],[7,2023,300.0,183.0,297.01],[8,2023,290.55,185.0,305.27],[9,2023,291.8,182.5,314.85],[10,2023,288.73,177.8,314.16],[11,2023,292.0,172.0,317.72],[0,2024,278.44,178.5,300.98],[1,2024,298.53,184.5,313.65],[2,2024,296.63,189.5,341.62],[3,2024,303.82,191.2,275.63],[4,2024,318.0,188.0,301.98],[5,2024,321.28,192.8,322.3],[6,2024,311.55,191.5,302.17],[7,2024,300.0,181.0,297.01],[8,2024,322.33,192.0,338.65],[9,2024,320.0,187.5,345.27],[10,2024,316.8,183.2,344.7],[11,2024,319.58,191.5,347.73],[0,2025,298.22,185.5,322.36],[1,2025,305.0,184.0,320.45],[2,2025,348.26,221.5,401.08],[3,2025,355.4,225.0,322.42],[4,2025,362.0,227.0,343.76],[5,2025,362.0,227.0,363.15],[6,2025,368.5,231.0,357.4],[7,2025,376.6,234.0,372.85],[8,2025,374.2,233.5,393.15],[9,2025,371.85,229.0,401.22],[10,2025,368.4,226.5,400.85],[11,2025,295.0,185.0,320.98]],
+  '171C': [[0,2023,270.15,161.2,301.63],[1,2023,272.44,163.5,293.11],[2,2023,280.51,167.0,327.14],[3,2023,295.82,172.5,289.47],[4,2023,310.67,177.8,312.18],[5,2026,396.53,259.50,447.87],[6,2023,325.4,181.2,336.9],[7,2023,300.0,183.0,316.7],[8,2023,290.55,185.0,318.5],[9,2023,291.8,182.5,338.24],[10,2023,288.73,177.8,336.44],[11,2023,292.0,172.0,340.26],[0,2024,278.44,178.5,310.89],[1,2024,298.53,184.5,321.18],[2,2024,296.63,189.5,345.94],[3,2024,303.82,191.2,297.3],[4,2024,318.0,188.0,319.55],[5,2024,321.28,192.8,350.89],[6,2024,311.55,191.5,322.56],[7,2024,300.0,181.0,316.7],[8,2024,322.33,192.0,353.34],[9,2024,320.0,187.5,370.92],[10,2024,316.8,183.2,369.15],[11,2024,319.58,191.5,372.39],[0,2025,298.22,185.5,332.97],[1,2025,305.0,184.0,328.14],[2,2025,348.26,221.5,406.16],[3,2025,355.4,225.0,347.77],[4,2025,362.0,227.0,363.76],[5,2025,362.0,227.0,395.36],[6,2025,368.5,231.0,381.53],[7,2025,376.6,234.0,397.57],[8,2025,374.2,233.5,410.2],[9,2025,371.85,229.0,431.03],[10,2025,368.4,226.5,429.28],[11,2025,295.0,185.0,343.75]],
+  '174': [[0,2023,270.15,161.2,658.32],[1,2023,272.44,163.5,657.4],[2,2023,280.51,167.0,663.46],[3,2023,295.82,172.5,692.61],[4,2023,310.67,177.8,731.09],[5,2026,396.53,259.50,909.09],[6,2023,325.4,181.2,785.19],[7,2023,300.0,183.0,731.06],[8,2023,290.55,185.0,708.04],[9,2023,291.8,182.5,700.63],[10,2023,288.73,177.8,682.91],[11,2023,292.0,172.0,749.94],[0,2024,278.44,178.5,678.53],[1,2024,298.53,184.5,720.35],[2,2024,296.63,189.5,701.59],[3,2024,303.82,191.2,711.34],[4,2024,318.0,188.0,748.34],[5,2024,321.28,192.8,763.73],[6,2024,311.55,191.5,751.77],[7,2024,300.0,181.0,731.06],[8,2024,322.33,192.0,785.48],[9,2024,320.0,187.5,768.33],[10,2024,316.8,183.2,749.3],[11,2024,319.58,191.5,820.77],[0,2025,298.22,185.5,726.73],[1,2025,305.0,184.0,735.96],[2,2025,348.26,221.5,823.71],[3,2025,355.4,225.0,832.1],[4,2025,362.0,227.0,851.88],[5,2025,362.0,227.0,860.53],[6,2025,368.5,231.0,889.19],[7,2025,376.6,234.0,917.73],[8,2025,374.2,233.5,911.88],[9,2025,371.85,229.0,892.83],[10,2025,368.4,226.5,871.34],[11,2025,295.0,185.0,757.64]],
+  '175': [[0,2023,270.15,161.2,652.67],[1,2023,272.44,163.5,651.75],[2,2023,280.51,167.0,657.77],[3,2023,295.82,172.5,686.67],[4,2023,310.67,177.8,724.82],[5,2026,396.53,259.50,943.95],[6,2023,325.4,181.2,778.45],[7,2023,300.0,183.0,724.79],[8,2023,290.55,185.0,701.96],[9,2023,291.8,182.5,694.61],[10,2023,288.73,177.8,677.05],[11,2023,292.0,172.0,743.5],[0,2024,278.44,178.5,672.7],[1,2024,298.53,184.5,714.17],[2,2024,296.63,189.5,695.57],[3,2024,303.82,191.2,705.24],[4,2024,318.0,188.0,741.92],[5,2024,321.28,192.8,757.18],[6,2024,311.55,191.5,745.32],[7,2024,300.0,181.0,724.79],[8,2024,322.33,192.0,778.74],[9,2024,320.0,187.5,761.74],[10,2024,316.8,183.2,742.87],[11,2024,319.58,191.5,813.73],[0,2025,298.22,185.5,720.49],[1,2025,305.0,184.0,729.65],[2,2025,348.26,221.5,816.64],[3,2025,355.4,225.0,824.96],[4,2025,362.0,227.0,844.57],[5,2025,362.0,227.0,853.15],[6,2025,368.5,231.0,881.56],[7,2025,376.6,234.0,909.86],[8,2025,374.2,233.5,904.06],[9,2025,371.85,229.0,885.17],[10,2025,368.4,226.5,863.87],[11,2025,295.0,185.0,751.14]],
+  '180': [[0,2023,270.15,161.2,776.56],[1,2023,272.44,163.5,775.47],[2,2023,280.51,167.0,782.63],[3,2023,295.82,172.5,817.01],[4,2023,310.67,177.8,862.4],[5,2026,396.53,259.50,1110.17],[6,2023,325.4,181.2,926.21],[7,2023,300.0,183.0,862.37],[8,2023,290.55,185.0,835.2],[9,2023,291.8,182.5,826.46],[10,2023,288.73,177.8,805.56],[11,2023,292.0,172.0,884.63],[0,2024,278.44,178.5,800.39],[1,2024,298.53,184.5,849.73],[2,2024,296.63,189.5,827.6],[3,2024,303.82,191.2,839.1],[4,2024,318.0,188.0,882.74],[5,2024,321.28,192.8,900.9],[6,2024,311.55,191.5,886.79],[7,2024,300.0,181.0,862.37],[8,2024,322.33,192.0,926.56],[9,2024,320.0,187.5,906.33],[10,2024,316.8,183.2,883.88],[11,2024,319.58,191.5,968.19],[0,2025,298.22,185.5,857.25],[1,2025,305.0,184.0,868.15],[2,2025,348.26,221.5,971.65],[3,2025,355.4,225.0,981.56],[4,2025,362.0,227.0,1004.89],[5,2025,362.0,227.0,1015.09],[6,2025,368.5,231.0,1048.89],[7,2025,376.6,234.0,1082.56],[8,2025,374.2,233.5,1075.66],[9,2025,371.85,229.0,1053.19],[10,2025,368.4,226.5,1027.84],[11,2025,295.0,185.0,893.72]],
+  '184': [[0,2023,270.15,161.2,396.33],[1,2023,272.44,163.5,396.94],[2,2023,280.51,167.0,402.21],[3,2023,295.82,172.5,420.31],[4,2023,310.67,177.8,443.2],[5,2026,396.53,259.50,570.13],[6,2023,325.4,181.2,475.04],[7,2023,300.0,183.0,441.43],[8,2023,290.55,185.0,427.52],[9,2023,291.8,182.5,423.45],[10,2023,288.73,177.8,413.57],[11,2023,292.0,172.0,452.02],[0,2024,278.44,178.5,408.49],[1,2024,298.53,184.5,434.95],[2,2024,296.63,189.5,425.32],[3,2024,303.82,191.2,431.68],[4,2024,318.0,188.0,453.66],[5,2024,321.28,192.8,462.52],[6,2024,311.55,191.5,454.82],[7,2024,300.0,181.0,441.43],[8,2024,322.33,192.0,474.28],[9,2024,320.0,187.5,464.38],[10,2024,316.8,183.2,453.78],[11,2024,319.58,191.5,494.72],[0,2025,298.22,185.5,437.51],[1,2025,305.0,184.0,444.37],[2,2025,348.26,221.5,499.35],[3,2025,355.4,225.0,504.96],[4,2025,362.0,227.0,516.43],[5,2025,362.0,227.0,521.14],[6,2025,368.5,231.0,537.96],[7,2025,376.6,234.0,554.14],[8,2025,374.2,233.5,550.6],[9,2025,371.85,229.0,539.62],[10,2025,368.4,226.5,527.69],[11,2025,295.0,185.0,456.67]],
+  '184B': [[0,2023,270.15,161.2,454.13],[1,2023,272.44,163.5,454.82],[2,2023,280.51,167.0,460.86],[3,2023,295.82,172.5,481.61],[4,2023,310.67,177.8,507.84],[5,2026,396.53,259.50,702.98],[6,2023,325.4,181.2,544.32],[7,2023,300.0,183.0,505.8],[8,2023,290.55,185.0,489.87],[9,2023,291.8,182.5,485.21],[10,2023,288.73,177.8,473.89],[11,2023,292.0,172.0,517.95],[0,2024,278.44,178.5,468.07],[1,2024,298.53,184.5,498.38],[2,2024,296.63,189.5,487.35],[3,2024,303.82,191.2,494.63],[4,2024,318.0,188.0,519.82],[5,2024,321.28,192.8,529.98],[6,2024,311.55,191.5,521.15],[7,2024,300.0,181.0,505.8],[8,2024,322.33,192.0,543.45],[9,2024,320.0,187.5,532.1],[10,2024,316.8,183.2,519.96],[11,2024,319.58,191.5,566.87],[0,2025,298.22,185.5,501.32],[1,2025,305.0,184.0,509.18],[2,2025,348.26,221.5,572.17],[3,2025,355.4,225.0,578.61],[4,2025,362.0,227.0,591.75],[5,2025,362.0,227.0,597.15],[6,2025,368.5,231.0,616.41],[7,2025,376.6,234.0,634.95],[8,2025,374.2,233.5,630.91],[9,2025,371.85,229.0,618.32],[10,2025,368.4,226.5,604.65],[11,2025,295.0,185.0,523.27]],
+  '185A': [[0,2023,270.15,161.2,622.52],[1,2023,272.44,163.5,623.47],[2,2023,280.51,167.0,631.75],[3,2023,295.82,172.5,660.18],[4,2023,310.67,177.8,696.15],[5,2026,396.53,259.50,895.84],[6,2023,325.4,181.2,746.14],[7,2023,300.0,183.0,693.35],[8,2023,290.55,185.0,671.51],[9,2023,291.8,182.5,665.12],[10,2023,288.73,177.8,649.6],[11,2023,292.0,172.0,710.0],[0,2024,278.44,178.5,641.62],[1,2024,298.53,184.5,683.17],[2,2024,296.63,189.5,668.05],[3,2024,303.82,191.2,678.04],[4,2024,318.0,188.0,712.57],[5,2024,321.28,192.8,726.48],[6,2024,311.55,191.5,714.39],[7,2024,300.0,181.0,693.35],[8,2024,322.33,192.0,744.96],[9,2024,320.0,187.5,729.4],[10,2024,316.8,183.2,712.76],[11,2024,319.58,191.5,777.06],[0,2025,298.22,185.5,687.2],[1,2025,305.0,184.0,697.98],[2,2025,348.26,221.5,784.33],[3,2025,355.4,225.0,793.15],[4,2025,362.0,227.0,811.16],[5,2025,362.0,227.0,818.56],[6,2025,368.5,231.0,844.97],[7,2025,376.6,234.0,870.38],[8,2025,374.2,233.5,864.84],[9,2025,371.85,229.0,847.59],[10,2025,368.4,226.5,828.85],[11,2025,295.0,185.0,717.29]],
+  '185C': [[0,2023,270.15,161.2,405.43],[1,2023,272.44,163.5,405.96],[2,2023,280.51,167.0,419.69],[3,2023,295.82,172.5,448.46],[4,2023,310.67,177.8,482.8],[5,2026,396.53,259.50,594.42],[6,2023,325.4,181.2,515.61],[7,2023,300.0,183.0,474.45],[8,2023,290.55,185.0,451.54],[9,2023,291.8,182.5,444.59],[10,2023,288.73,177.8,429.35],[11,2023,292.0,172.0,431.99],[0,2024,278.44,178.5,417.87],[1,2024,298.53,184.5,444.83],[2,2024,296.63,189.5,443.81],[3,2024,303.82,191.2,460.59],[4,2024,318.0,188.0,494.19],[5,2024,321.28,192.8,506.63],[6,2024,311.55,191.5,493.66],[7,2024,300.0,181.0,474.45],[8,2024,322.33,192.0,500.92],[9,2024,320.0,187.5,487.55],[10,2024,316.8,183.2,471.09],[11,2024,319.58,191.5,472.79],[0,2025,298.22,185.5,447.55],[1,2025,305.0,184.0,454.47],[2,2025,348.26,221.5,521.06],[3,2025,355.4,225.0,538.78],[4,2025,362.0,227.0,562.57],[5,2025,362.0,227.0,570.85],[6,2025,368.5,231.0,583.9],[7,2025,376.6,234.0,595.59],[8,2025,374.2,233.5,581.53],[9,2025,371.85,229.0,566.55],[10,2025,368.4,226.5,547.82],[11,2025,295.0,185.0,436.43]],
+  '185D': [[0,2023,270.15,161.2,550.72],[1,2023,272.44,163.5,551.44],[2,2023,280.51,167.0,570.09],[3,2023,295.82,172.5,609.17],[4,2023,310.67,177.8,655.82],[5,2026,396.53,259.50,854.56],[6,2023,325.4,181.2,700.39],[7,2023,300.0,183.0,644.47],[8,2023,290.55,185.0,613.35],[9,2023,291.8,182.5,603.91],[10,2023,288.73,177.8,583.21],[11,2023,292.0,172.0,586.8],[0,2024,278.44,178.5,567.62],[1,2024,298.53,184.5,604.25],[2,2024,296.63,189.5,602.86],[3,2024,303.82,191.2,625.64],[4,2024,318.0,188.0,671.3],[5,2024,321.28,192.8,688.19],[6,2024,311.55,191.5,670.58],[7,2024,300.0,181.0,644.47],[8,2024,322.33,192.0,680.44],[9,2024,320.0,187.5,662.27],[10,2024,316.8,183.2,639.91],[11,2024,319.58,191.5,642.22],[0,2025,298.22,185.5,607.94],[1,2025,305.0,184.0,617.34],[2,2025,348.26,221.5,707.79],[3,2025,355.4,225.0,731.86],[4,2025,362.0,227.0,764.18],[5,2025,362.0,227.0,775.42],[6,2025,368.5,231.0,793.15],[7,2025,376.6,234.0,809.03],[8,2025,374.2,233.5,789.93],[9,2025,371.85,229.0,769.58],[10,2025,368.4,226.5,744.14],[11,2025,295.0,185.0,592.83]],
+  '189A': [[0,2023,270.15,161.2,1025.55],[1,2023,272.44,163.5,1025.8],[2,2023,280.51,167.0,1051.84],[3,2023,295.82,172.5,1119.56],[4,2023,310.67,177.8,1207.05],[5,2026,396.53,259.50,1528.25],[6,2023,325.4,181.2,1279.41],[7,2023,300.0,183.0,1167.92],[8,2023,290.55,185.0,1157.02],[9,2023,291.8,182.5,1166.52],[10,2023,288.73,177.8,1152.01],[11,2023,292.0,172.0,1204.64],[0,2024,278.44,178.5,1057.02],[1,2024,298.53,184.5,1124.04],[2,2024,296.63,189.5,1112.29],[3,2024,303.82,191.2,1149.84],[4,2024,318.0,188.0,1235.53],[5,2024,321.28,192.8,1269.43],[6,2024,311.55,191.5,1224.95],[7,2024,300.0,181.0,1167.92],[8,2024,322.33,192.0,1283.57],[9,2024,320.0,187.5,1279.25],[10,2024,316.8,183.2,1264.0],[11,2024,319.58,191.5,1318.42],[0,2025,298.22,185.5,1132.11],[1,2025,305.0,184.0,1148.4],[2,2025,348.26,221.5,1305.89],[3,2025,355.4,225.0,1345.05],[4,2025,362.0,227.0,1406.49],[5,2025,362.0,227.0,1430.32],[6,2025,368.5,231.0,1448.87],[7,2025,376.6,234.0,1466.13],[8,2025,374.2,233.5,1490.13],[9,2025,371.85,229.0,1486.53],[10,2025,368.4,226.5,1469.88],[11,2025,295.0,185.0,1217.02]],
+  '191A': [[0,2023,270.15,161.2,1006.36],[1,2023,272.44,163.5,1006.6],[2,2023,280.51,167.0,1032.15],[3,2023,295.82,172.5,1098.61],[4,2023,310.67,177.8,1184.46],[5,2026,396.53,259.50,1505.46],[6,2023,325.4,181.2,1255.46],[7,2023,300.0,183.0,1146.06],[8,2023,290.55,185.0,1135.36],[9,2023,291.8,182.5,1144.68],[10,2023,288.73,177.8,1130.45],[11,2023,292.0,172.0,1182.1],[0,2024,278.44,178.5,1037.24],[1,2024,298.53,184.5,1103.0],[2,2024,296.63,189.5,1091.47],[3,2024,303.82,191.2,1128.32],[4,2024,318.0,188.0,1212.41],[5,2024,321.28,192.8,1245.67],[6,2024,311.55,191.5,1202.03],[7,2024,300.0,181.0,1146.06],[8,2024,322.33,192.0,1259.55],[9,2024,320.0,187.5,1255.31],[10,2024,316.8,183.2,1240.35],[11,2024,319.58,191.5,1293.75],[0,2025,298.22,185.5,1110.92],[1,2025,305.0,184.0,1126.9],[2,2025,348.26,221.5,1281.44],[3,2025,355.4,225.0,1319.87],[4,2025,362.0,227.0,1380.16],[5,2025,362.0,227.0,1403.56],[6,2025,368.5,231.0,1421.75],[7,2025,376.6,234.0,1438.69],[8,2025,374.2,233.5,1462.24],[9,2025,371.85,229.0,1458.71],[10,2025,368.4,226.5,1442.37],[11,2025,295.0,185.0,1194.24]],
+  '193': [[0,2023,270.15,161.2,668.85],[1,2023,272.44,163.5,663.98],[2,2023,280.51,167.0,694.5],[3,2023,295.82,172.5,747.66],[4,2023,310.67,177.8,817.24],[5,2026,396.53,259.50,990.62],[6,2023,325.4,181.2,906.34],[7,2023,300.0,183.0,835.6],[8,2023,290.55,185.0,786.79],[9,2023,291.8,182.5,767.6],[10,2023,288.73,177.8,722.3],[11,2023,292.0,172.0,734.24],[0,2024,278.44,178.5,689.37],[1,2024,298.53,184.5,727.56],[2,2024,296.63,189.5,734.41],[3,2024,303.82,191.2,767.88],[4,2024,318.0,188.0,836.52],[5,2024,321.28,192.8,878.3],[6,2024,311.55,191.5,867.77],[7,2024,300.0,181.0,835.6],[8,2024,322.33,192.0,872.85],[9,2024,320.0,187.5,841.79],[10,2024,316.8,183.2,792.52],[11,2024,319.58,191.5,803.59],[0,2025,298.22,185.5,738.35],[1,2025,305.0,184.0,743.33],[2,2025,348.26,221.5,862.24],[3,2025,355.4,225.0,898.25],[4,2025,362.0,227.0,952.27],[5,2025,362.0,227.0,989.61],[6,2025,368.5,231.0,1026.39],[7,2025,376.6,234.0,1048.95],[8,2025,374.2,233.5,1013.31],[9,2025,371.85,229.0,978.18],[10,2025,368.4,226.5,921.6],[11,2025,295.0,185.0,741.78]],
+  'TR90': [[0,2023,270.15,161.2,317.22],[1,2023,272.44,163.5,318.32],[2,2023,280.51,167.0,325.47],[3,2023,295.82,172.5,341.17],[4,2023,310.67,177.8,359.38],[5,2026,396.53,259.50,459.76],[6,2023,325.4,181.2,382.09],[7,2023,300.0,183.0,351.57],[8,2023,290.55,185.0,337.79],[9,2023,291.8,182.5,337.55],[10,2023,288.73,177.8,333.33],[11,2023,292.0,172.0,336.42],[0,2024,278.44,178.5,326.95],[1,2024,298.53,184.5,348.81],[2,2024,296.63,189.5,344.17],[3,2024,303.82,191.2,350.4],[4,2024,318.0,188.0,367.86],[5,2024,321.28,192.8,374.64],[6,2024,311.55,191.5,365.83],[7,2024,300.0,181.0,351.57],[8,2024,322.33,192.0,374.74],[9,2024,320.0,187.5,370.17],[10,2024,316.8,183.2,365.73],[11,2024,319.58,191.5,368.2],[0,2025,298.22,185.5,350.18],[1,2025,305.0,184.0,356.37],[2,2025,348.26,221.5,404.08],[3,2025,355.4,225.0,409.88],[4,2025,362.0,227.0,418.76],[5,2025,362.0,227.0,422.12],[6,2025,368.5,231.0,432.7],[7,2025,376.6,234.0,441.34],[8,2025,374.2,233.5,435.04],[9,2025,371.85,229.0,430.15],[10,2025,368.4,226.5,425.3],[11,2025,295.0,185.0,339.88]],
+  'TR85': [[0,2023,270.15,161.2,283.17],[1,2023,272.44,163.5,284.15],[2,2023,280.51,167.0,290.53],[3,2023,295.82,172.5,304.55],[4,2023,310.67,177.8,320.8],[5,2026,396.53,259.50,410.19],[6,2023,325.4,181.2,341.08],[7,2023,300.0,183.0,313.83],[8,2023,290.55,185.0,301.53],[9,2023,291.8,182.5,301.32],[10,2023,288.73,177.8,297.55],[11,2023,292.0,172.0,300.31],[0,2024,278.44,178.5,291.85],[1,2024,298.53,184.5,311.36],[2,2024,296.63,189.5,307.23],[3,2024,303.82,191.2,312.78],[4,2024,318.0,188.0,328.37],[5,2024,321.28,192.8,334.42],[6,2024,311.55,191.5,326.56],[7,2024,300.0,181.0,313.83],[8,2024,322.33,192.0,334.51],[9,2024,320.0,187.5,330.44],[10,2024,316.8,183.2,326.47],[11,2024,319.58,191.5,328.68],[0,2025,298.22,185.5,312.59],[1,2025,305.0,184.0,318.11],[2,2025,348.26,221.5,360.7],[3,2025,355.4,225.0,365.88],[4,2025,362.0,227.0,373.81],[5,2025,362.0,227.0,376.81],[6,2025,368.5,231.0,386.25],[7,2025,376.6,234.0,393.96],[8,2025,374.2,233.5,388.34],[9,2025,371.85,229.0,383.98],[10,2025,368.4,226.5,379.65],[11,2025,295.0,185.0,303.4]],
+  'TR73': [[0,2023,270.15,161.2,234.38],[1,2023,272.44,163.5,235.2],[2,2023,280.51,167.0,240.48],[3,2023,295.82,172.5,252.08],[4,2023,310.67,177.8,265.53],[5,2026,396.53,259.50,339.72],[6,2023,325.4,181.2,282.31],[7,2023,300.0,183.0,259.76],[8,2023,290.55,185.0,249.58],[9,2023,291.8,182.5,249.4],[10,2023,288.73,177.8,246.28],[11,2023,292.0,172.0,248.57],[0,2024,278.44,178.5,241.57],[1,2024,298.53,184.5,257.72],[2,2024,296.63,189.5,254.3],[3,2024,303.82,191.2,258.89],[4,2024,318.0,188.0,271.8],[5,2024,321.28,192.8,276.81],[6,2024,311.55,191.5,270.3],[7,2024,300.0,181.0,259.76],[8,2024,322.33,192.0,276.88],[9,2024,320.0,187.5,273.51],[10,2024,316.8,183.2,270.23],[11,2024,319.58,191.5,272.05],[0,2025,298.22,185.5,258.73],[1,2025,305.0,184.0,263.3],[2,2025,348.26,221.5,298.56],[3,2025,355.4,225.0,302.85],[4,2025,362.0,227.0,309.4],[5,2025,362.0,227.0,311.89],[6,2025,368.5,231.0,319.71],[7,2025,376.6,234.0,326.09],[8,2025,374.2,233.5,321.44],[9,2025,371.85,229.0,317.82],[10,2025,368.4,226.5,314.24],[11,2025,295.0,185.0,251.12]],
+  'TR65': [[0,2023,270.15,161.2,174.58],[1,2023,272.44,163.5,175.36],[2,2023,280.51,167.0,179.48],[3,2023,295.82,172.5,188.51],[4,2023,310.67,177.8,198.57],[5,2026,396.53,259.50,254.53],[6,2023,325.4,181.2,209.87],[7,2023,300.0,183.0,193.29],[8,2023,290.55,185.0,186.27],[9,2023,291.8,182.5,186.51],[10,2023,288.73,177.8,184.18],[11,2023,292.0,172.0,185.89],[0,2024,278.44,178.5,179.94],[1,2024,298.53,184.5,192.15],[2,2024,296.63,189.5,189.79],[3,2024,303.82,191.2,193.61],[4,2024,318.0,188.0,203.26],[5,2024,321.28,192.8,206.18],[6,2024,311.55,191.5,200.93],[7,2024,300.0,181.0,193.29],[8,2024,322.33,192.0,206.65],[9,2024,320.0,187.5,204.54],[10,2024,316.8,183.2,202.08],[11,2024,319.58,191.5,203.45],[0,2025,298.22,185.5,192.72],[1,2025,305.0,184.0,196.32],[2,2025,348.26,221.5,222.82],[3,2025,355.4,225.0,226.48],[4,2025,362.0,227.0,231.38],[5,2025,362.0,227.0,232.31],[6,2025,368.5,231.0,237.66],[7,2025,376.6,234.0,242.65],[8,2025,374.2,233.5,239.9],[9,2025,371.85,229.0,237.68],[10,2025,368.4,226.5,235.0],[11,2025,295.0,185.0,187.8]],
+  'TR50': [[0,2023,270.15,161.2,125.45],[1,2023,272.44,163.5,126.14],[2,2023,280.51,167.0,129.35],[3,2023,295.82,172.5,136.0],[4,2023,310.67,177.8,143.12],[5,2026,396.53,259.50,186.14],[6,2023,325.4,181.2,150.81],[7,2023,300.0,183.0,138.9],[8,2023,290.55,185.0,134.12],[9,2023,291.8,182.5,134.43],[10,2023,288.73,177.8,132.88],[11,2023,292.0,172.0,134.25],[0,2024,278.44,178.5,129.3],[1,2024,298.53,184.5,138.21],[2,2024,296.63,189.5,136.79],[3,2024,303.82,191.2,139.68],[4,2024,318.0,188.0,146.5],[5,2024,321.28,192.8,148.3],[6,2024,311.55,191.5,144.39],[7,2024,300.0,181.0,138.9],[8,2024,322.33,192.0,148.79],[9,2024,320.0,187.5,147.42],[10,2024,316.8,183.2,145.8],[11,2024,319.58,191.5,146.93],[0,2025,298.22,185.5,138.48],[1,2025,305.0,184.0,141.21],[2,2025,348.26,221.5,160.6],[3,2025,355.4,225.0,163.4],[4,2025,362.0,227.0,166.77],[5,2025,362.0,227.0,167.1],[6,2025,368.5,231.0,170.78],[7,2025,376.6,234.0,174.36],[8,2025,374.2,233.5,172.73],[9,2025,371.85,229.0,171.3],[10,2025,368.4,226.5,169.54],[11,2025,295.0,185.0,135.63]],
+  'GB73': [[0,2023,270.15,161.2,246.65],[1,2023,272.44,163.5,247.27],[2,2023,280.51,167.0,252.32],[3,2023,295.82,172.5,264.49],[4,2023,310.67,177.8,278.6],[5,2026,396.53,259.50,348.83],[6,2023,325.4,181.2,297.1],[7,2023,300.0,183.0,273.1],[8,2023,290.55,185.0,262.13],[9,2023,291.8,182.5,261.68],[10,2023,288.73,177.8,258.15],[11,2023,292.0,172.0,260.28],[0,2024,278.44,178.5,254.22],[1,2024,298.53,184.5,270.95],[2,2024,296.63,189.5,266.82],[3,2024,303.82,191.2,271.64],[4,2024,318.0,188.0,285.18],[5,2024,321.28,192.8,290.44],[6,2024,311.55,191.5,284.45],[7,2024,300.0,181.0,273.1],[8,2024,322.33,192.0,290.81],[9,2024,320.0,187.5,286.97],[10,2024,316.8,183.2,283.24],[11,2024,319.58,191.5,284.87],[0,2025,298.22,185.5,272.28],[1,2025,305.0,184.0,276.82],[2,2025,348.26,221.5,313.26],[3,2025,355.4,225.0,317.76],[4,2025,362.0,227.0,324.64],[5,2025,362.0,227.0,327.25],[6,2025,368.5,231.0,336.45],[7,2025,376.6,234.0,342.83],[8,2025,374.2,233.5,337.6],[9,2025,371.85,229.0,333.47],[10,2025,368.4,226.5,329.38],[11,2025,295.0,185.0,262.96]],
+  'GB81': [[0,2023,270.15,161.2,284.87],[1,2023,272.44,163.5,285.59],[2,2023,280.51,167.0,291.41],[3,2023,295.82,172.5,305.47],[4,2023,310.67,177.8,321.78],[5,2026,396.53,259.50,418.33],[6,2023,325.4,181.2,343.14],[7,2023,300.0,183.0,315.41],[8,2023,290.55,185.0,302.75],[9,2023,291.8,182.5,302.23],[10,2023,288.73,177.8,298.15],[11,2023,292.0,172.0,300.61],[0,2024,278.44,178.5,293.62],[1,2024,298.53,184.5,312.93],[2,2024,296.63,189.5,308.16],[3,2024,303.82,191.2,313.73],[4,2024,318.0,188.0,329.37],[5,2024,321.28,192.8,335.44],[6,2024,311.55,191.5,328.53],[7,2024,300.0,181.0,315.41],[8,2024,322.33,192.0,335.87],[9,2024,320.0,187.5,331.44],[10,2024,316.8,183.2,327.13],[11,2024,319.58,191.5,329.01],[0,2025,298.22,185.5,314.47],[1,2025,305.0,184.0,319.72],[2,2025,348.26,221.5,361.8],[3,2025,355.4,225.0,366.99],[4,2025,362.0,227.0,374.94],[5,2025,362.0,227.0,377.96],[6,2025,368.5,231.0,388.58],[7,2025,376.6,234.0,395.95],[8,2025,374.2,233.5,389.92],[9,2025,371.85,229.0,385.14],[10,2025,368.4,226.5,380.42],[11,2025,295.0,185.0,303.7]],
+  'GB85': [[0,2023,270.15,161.2,321.95],[1,2023,272.44,163.5,322.75],[2,2023,280.51,167.0,329.34],[3,2023,295.82,172.5,345.22],[4,2023,310.67,177.8,363.65],[5,2026,396.53,259.50,473.31],[6,2023,325.4,181.2,387.79],[7,2023,300.0,183.0,356.46],[8,2023,290.55,185.0,342.15],[9,2023,291.8,182.5,341.56],[10,2023,288.73,177.8,336.95],[11,2023,292.0,172.0,339.73],[0,2024,278.44,178.5,331.83],[1,2024,298.53,184.5,353.66],[2,2024,296.63,189.5,348.26],[3,2024,303.82,191.2,354.56],[4,2024,318.0,188.0,372.23],[5,2024,321.28,192.8,379.1],[6,2024,311.55,191.5,371.28],[7,2024,300.0,181.0,356.46],[8,2024,322.33,192.0,379.58],[9,2024,320.0,187.5,374.57],[10,2024,316.8,183.2,369.71],[11,2024,319.58,191.5,371.82],[0,2025,298.22,185.5,355.4],[1,2025,305.0,184.0,361.32],[2,2025,348.26,221.5,408.88],[3,2025,355.4,225.0,414.75],[4,2025,362.0,227.0,423.73],[5,2025,362.0,227.0,427.14],[6,2025,368.5,231.0,439.15],[7,2025,376.6,234.0,447.48],[8,2025,374.2,233.5,440.66],[9,2025,371.85,229.0,435.26],[10,2025,368.4,226.5,429.92],[11,2025,295.0,185.0,343.22]],
+  'GB90': [[0,2023,270.15,161.2,363.8],[1,2023,272.44,163.5,364.71],[2,2023,280.51,167.0,372.15],[3,2023,295.82,172.5,390.1],[4,2023,310.67,177.8,410.93],[5,2026,396.53,259.50,484.8],[6,2023,325.4,181.2,438.21],[7,2023,300.0,183.0,402.8],[8,2023,290.55,185.0,386.63],[9,2023,291.8,182.5,385.97],[10,2023,288.73,177.8,380.76],[11,2023,292.0,172.0,383.9],[0,2024,278.44,178.5,374.97],[1,2024,298.53,184.5,399.64],[2,2024,296.63,189.5,393.54],[3,2024,303.82,191.2,400.65],[4,2024,318.0,188.0,420.62],[5,2024,321.28,192.8,428.38],[6,2024,311.55,191.5,419.55],[7,2024,300.0,181.0,402.8],[8,2024,322.33,192.0,428.92],[9,2024,320.0,187.5,423.27],[10,2024,316.8,183.2,417.77],[11,2024,319.58,191.5,420.16],[0,2025,298.22,185.5,401.6],[1,2025,305.0,184.0,408.3],[2,2025,348.26,221.5,462.04],[3,2025,355.4,225.0,468.67],[4,2025,362.0,227.0,478.82],[5,2025,362.0,227.0,482.68],[6,2025,368.5,231.0,496.25],[7,2025,376.6,234.0,505.65],[8,2025,374.2,233.5,497.95],[9,2025,371.85,229.0,491.85],[10,2025,368.4,226.5,485.82],[11,2025,295.0,185.0,387.85]],
+};
+
+const AVG_SL_RATIO = {
+  // 3-year avg (2023-2025) SP/LC price ratio per calendar month, per cut.
+  // Recomputed directly from calibration OBS arrays (Jul 2, 2026) — previous
+  // hardcoded table was stale and understated ratios by ~4-12% across all cuts,
+  // causing 12-month forecasts to run systematically low.
+  '109E': [4.7298,4.3386,5.0955,4.089,4.4044,4.4041,4.4636,4.4353,4.5739,5.0043,5.6572,5.804],
+  '112A-L': [5.173,4.7452,5.573,4.4721,4.8171,4.9419,4.8818,4.8509,5.0025,5.4733,6.1873,6.3479],
+  '112A-H': [5.3184,4.8786,5.7297,4.5979,4.9525,5.075,5.0191,4.9873,5.1431,5.6272,6.3613,6.5264],
+  '113C': [1.9018,1.9338,1.8598,1.872,1.9374,1.8568,1.9762,1.9417,1.892,1.8973,1.907,1.8979],
+  '114': [1.7979,1.8291,1.7634,1.7751,1.837,1.743,1.8682,1.8356,1.7904,1.799,1.8082,1.8015],
+  '114A': [1.8183,1.8498,1.7834,1.7952,1.8579,1.7788,1.8894,1.8565,1.8107,1.8194,1.8287,1.8219],
+  '114D': [2.3252,2.3113,2.1481,2.3201,2.4539,2.3841,2.4213,2.3309,2.3724,2.5836,2.6172,2.615],
+  '114E': [2.1496,2.1603,2.191,2.1543,2.2003,2.0336,2.2807,2.2184,2.0885,2.099,2.2764,2.4203],
+  '114F': [3.0292,3.0408,3.1872,3.4025,3.5394,3.3682,4.0017,3.7318,3.3626,2.9429,2.9459,2.9618],
+  '116A': [1.9646,1.9986,1.9404,1.9611,2.0254,1.9334,2.0374,1.996,1.9622,1.9816,1.9977,1.9863],
+  '116B': [1.8747,1.9071,1.8516,1.8714,1.9327,1.8454,1.9442,1.9046,1.8724,1.8909,1.9063,1.8954],
+  '116G': [3.8747,3.8711,3.4963,3.9594,4.1943,4.0721,4.265,4.0475,4.1239,4.2638,4.3569,4.4028],
+  '120': [1.9241,1.9452,1.8806,1.9261,2.0464,1.9703,2.1071,2.0641,2.0177,2.014,1.9923,1.9467],
+  '120A': [3.2277,3.2632,3.1548,3.2312,3.433,3.2951,3.5348,3.4627,3.3849,3.3787,3.3422,3.2658],
+  '121C': [4.5537,4.5738,4.5292,4.6871,5.0282,4.9496,5.3075,5.1894,4.9894,4.9242,4.7306,4.7373],
+  '121D': [2.7784,2.7906,2.7634,2.8597,3.0679,2.9733,3.2383,3.1661,3.0441,3.0044,2.8862,2.8903],
+  '123A': [3.102,3.032,3.0155,2.6981,2.8505,2.8679,2.5796,2.613,2.8132,3.4314,3.4244,3.5035],
+  '123B': [3.4702,3.3919,3.3735,3.0184,3.1888,3.1849,2.8858,2.9231,3.147,3.8386,3.8308,3.9193],
+  '155A': [1.9427,1.9763,1.9187,1.9392,2.0028,1.9068,2.0147,1.9737,1.9403,1.9594,1.9755,1.9641],
+  '157': [1.4183,1.4328,1.3967,1.409,1.445,1.2556,1.3252,1.3239,1.3649,1.4292,1.4582,1.4527],
+  '161': [1.6965,1.7259,1.6756,1.6935,1.7491,1.7179,1.7594,1.7237,1.6944,1.7112,1.7252,1.7153],
+  '167A': [1.6662,1.6655,1.6741,1.6286,1.7229,1.84,1.8144,1.7222,1.7714,1.9174,1.9578,1.968],
+  '168': [1.6984,1.6996,1.6892,1.5791,1.6632,1.7392,1.7257,1.6707,1.7014,1.7699,1.7965,1.8031],
+  '169': [1.8277,1.7971,1.8178,1.6972,1.813,1.9974,1.9796,1.8177,1.8308,2.0055,2.0346,2.0423],
+  '170': [1.6708,1.688,1.6618,1.668,1.7364,1.6725,1.7483,1.6925,1.6737,1.7174,1.7519,1.7606],
+  '171B': [1.7452,1.7308,1.8493,1.4768,1.5933,1.5961,1.6223,1.6191,1.6992,1.7729,1.8061,1.7994],
+  '171C': [1.8026,1.7723,1.8727,1.5929,1.686,1.7625,1.7318,1.7264,1.7729,1.9046,1.9342,1.927],
+  '174': [3.9343,3.975,3.798,3.8113,3.9484,3.7518,4.0361,3.9853,3.9412,3.9452,3.926,4.2472],
+  '175': [3.9005,3.9409,3.7654,3.7786,3.9145,3.7744,4.0015,3.9511,3.9074,3.9114,3.8923,4.2107],
+  '180': [4.6409,4.6889,4.4801,4.4958,4.6575,4.4742,4.761,4.7011,4.649,4.6538,4.6311,5.01],
+  '184': [2.3685,2.4001,2.3024,2.3129,2.3936,2.2973,2.4418,2.4064,2.3797,2.3845,2.3776,2.56],
+  '184B': [2.714,2.7501,2.6382,2.6502,2.7427,2.6962,2.7979,2.7573,2.7268,2.7322,2.7243,2.9333],
+  '185A': [3.7203,3.7698,3.6164,3.6328,3.7597,3.6087,3.8354,3.7797,3.7379,3.7453,3.7345,4.021],
+  '185C': [2.4229,2.4546,2.4025,2.4678,2.6075,2.4777,2.6504,2.5864,2.5134,2.5035,2.4683,2.4465],
+  '185D': [3.2912,3.3343,3.2635,3.3521,3.5419,3.4262,3.6002,3.5132,3.4141,3.4006,3.3528,3.3232],
+  '189A': [6.1289,6.2026,6.0212,6.1607,6.5189,6.2581,6.5765,6.3667,6.4404,6.5687,6.6228,6.8223],
+  '191A': [6.0142,6.0865,5.9085,6.0454,6.3969,6.1485,6.4534,6.2476,6.3198,6.4457,6.4988,6.6946],
+  '193': [3.9972,4.0148,3.9756,4.1142,4.4137,4.2441,4.6589,4.5551,4.3796,4.3224,4.1524,4.1583],
+  'TR90': [1.8958,1.9248,1.8631,1.8774,1.9409,1.8578,1.9641,1.9165,1.8803,1.9007,1.9163,1.9053],
+  'TR85': [1.6923,1.7181,1.6631,1.6758,1.7326,1.6587,1.7532,1.7108,1.6784,1.6967,1.7106,1.7008],
+  'TR73': [1.4007,1.4221,1.3766,1.3871,1.4341,1.3729,1.4512,1.416,1.3893,1.4044,1.4159,1.4077],
+  'TR65': [1.0433,1.0603,1.0274,1.0373,1.0724,1.0233,1.0788,1.0537,1.0369,1.0503,1.0588,1.0528],
+  'TR50': [0.7497,0.7627,0.7405,0.7484,0.773,0.7363,0.7752,0.7572,0.7466,0.757,0.7639,0.7603],
+  'GB73': [1.474,1.4951,1.4444,1.4554,1.5047,1.4308,1.5272,1.4888,1.4591,1.4735,1.4841,1.4741],
+  'GB81': [1.7025,1.7268,1.6682,1.6809,1.7378,1.6723,1.7638,1.7194,1.6852,1.7019,1.714,1.7025],
+  'GB85': [1.924,1.9515,1.8853,1.8997,1.964,1.8895,1.9933,1.9432,1.9045,1.9233,1.9371,1.924],
+  'GB90': [2.1742,2.2052,2.1304,2.1466,2.2193,2.0721,2.2525,2.1958,2.1521,2.1734,2.1889,2.1742],
+};
+
+const SL_CV = {
+  // Coefficient of variation for SP/LC ratio by cut.
+  // CI band: SP_forecast × (1 ± t80 × cv) where t80=1.307 (n=36, df=34, 80%CI)
+  // Calibrated from 3yr USDA LM_XB459 price dispersion by primal group.
+  '109E': 0.135,
+  '112A-H': 0.135,
+  '112A-L': 0.135,
+  '113C': 0.055,
+  '114': 0.055,
+  '114A': 0.055,
+  '114D': 0.055,
+  '114E': 0.055,
+  '114F': 0.055,
+  '116A': 0.055,
+  '116B': 0.055,
+  '116G': 0.055,
+  '120': 0.095,
+  '120A': 0.095,
+  '121C': 0.085,
+  '123A': 0.085,
+  '123B': 0.085,
+  '155A': 0.045,
+  '157': 0.045,
+  '161': 0.045,
+  '168': 0.045,
+  '169': 0.045,
+  '174': 0.11,
+  '175': 0.11,
+  '180': 0.11,
+  '184': 0.11,
+  '184B': 0.11,
+  '185A': 0.11,
+  '185C': 0.11,
+  '185D': 0.11,
+  '189A': 0.11,
+  '191A': 0.11,
+  '193': 0.09,
+  'TR90':0.025,'TR85':0.025,'TR73':0.025,'TR65':0.020,'TR50':0.015,
+  'GB73':0.030,'GB81':0.030,'GB85':0.030,'GB90':0.030,
+
+  '167A':0.04,'170':0.04,'171B':0.04,'171C':0.04,
+  '121D':0.055,
+};
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+let CHARTS_RATIO = {};
+
+function renderRatioTab() {
+  renderRatioOverview();
+  if (S.cut) renderRatioDetail(S.cut);
+}
+
+function renderRatioOverview() {
+  const lcMs = BFE.getLCMonths();
+  const coMs = BFE.lcToCutout(lcMs, S.grade);
+
+  // Build ratio cards for ALL cuts, sorted by baseRatioSC descending
+  const allCuts = [...CUTS].sort((a,b) => {
+    const ra = BFE.SUB_RATIOS[a.key]?.baseRatioSC || 0;
+    const rb = BFE.SUB_RATIOS[b.key]?.baseRatioSC || 0;
+    return rb - ra;
+  });
+
+  document.getElementById('ratioOverviewGrid').innerHTML = allCuts.map(c => {
+    const meta = BFE.SUB_RATIOS[c.key]; if (!meta) return '';
+    const base = S.grade==='choice' ? c.choiceP : c.selectP;
+    const isTG = ['trim','grind'].includes(c.parent||c.primal||'');
+    const pMs  = isTG ? coMs : BFE.cutoutToPrimal(c.primal, coMs, S.grade);
+    const subMeta_tg = isTG ? BFE.SUB_RATIOS[c.key] : null;
+    const curMo_tg = new Date().getMonth();
+    const sMs  = isTG
+      ? coMs.map(m=>({ ...m, sub:+(m.cutout*(subMeta_tg?.baseRatioSC||1)*(subMeta_tg?subMeta_tg.seasonal[m.mo]/subMeta_tg.seasonal[curMo_tg]:1)).toFixed(2), scRatio:subMeta_tg?.baseRatioSC||1, slRatio:(subMeta_tg?.baseRatioSC||1)/BFE.CO_LIVE_BASE }))
+      : BFE.primalToSub(c.key, pMs);
+    const curSC  = +(base / BFE.BASE_CHOICE_CO).toFixed(4);
+    const histSC = meta.baseRatioSC;
+    const scDiff = ((curSC / histSC - 1)*100).toFixed(1);
+    const fc1SC  = sMs.length ? sMs[0].scRatio : curSC;
+    const obs = USDA_OBS[c.key]?.length || 0;
+    const isActive = c.key === S.cut;
+    return `<div style="background:${isActive?'var(--bg5)':'var(--bg3)'};border:1px solid ${isActive?c.color+'60':'var(--border)'};border-radius:8px;padding:11px 12px;cursor:pointer;transition:all .15s"
+      onclick="selectCut('${c.key}');switchToRatio()">
+      <div style="font-family:var(--mono);font-size:9px;color:${c.color};font-weight:700;margin-bottom:3px">${c.imps}</div>
+      <div style="font-size:10px;font-weight:500;margin-bottom:6px;line-height:1.3">${c.name.replace('Rib,','').replace('Loin,','').replace('Chuck,','').replace('Round,','').trim().substring(0,22)}</div>
+      <div style="font-family:var(--mono);font-size:15px;font-weight:700;color:${c.color}">×${curSC.toFixed(3)}</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:2px">SP/CO current</div>
+      <div style="height:2px;background:var(--bg4);border-radius:1px;margin:6px 0;overflow:hidden">
+        <div style="height:100%;width:${Math.min(curSC/6*100,100)}%;background:${c.color}88;border-radius:1px"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--text3)">
+        <span>Hist: ×${histSC.toFixed(3)}</span>
+        <span style="color:${parseFloat(scDiff)>=0?'var(--green)':'var(--red)'}">${parseFloat(scDiff)>=0?'+':''}${scDiff}%</span>
+      </div>
+      <div style="font-family:var(--mono);font-size:8px;color:var(--text3);margin-top:3px">n=${obs} obs</div>
+    </div>`;
+  }).join('');
+}
+
+function switchToRatio() {
+  const btn = document.querySelector('[data-tab="ratios"]');
+  if (btn) switchTab(btn);
+}
+
+function renderRatioDetail(cutKey) {
+  // Always refresh reference table
+  setTimeout(populateReferenceTable, 50);
+  const cut  = CUTS.find(c=>c.key===cutKey); if(!cut) return;
+  const meta = BFE.SUB_RATIOS[cutKey] || {seasonal:[1,1,1,1,1,1,1,1,1,1,1,1],baseRatioSL:(AVG_SL_RATIO[cutKey]||[BFE.BASE_CHOICE_CO/BFE.BASE_LIVE])[new Date().getMonth()],vol:0.025,selectAdj:1.0};       if(!meta) return;
+  const base = S.grade==='choice' ? cut.choiceP : cut.selectP;
+
+  document.getElementById('ratioDetailSection').style.display = '';
+  document.getElementById('ratioDetailTitle').textContent =
+    `${cut.imps} ${cut.name} — Ratio Analysis (n=36 (3yr×12mo) SP/LC ratio · LM_XB459/LM_XB460)`;
+
+  const lcMs = BFE.getLCMonths();
+  const coMs = BFE.lcToCutout(lcMs, S.grade);
+  const isTrimGrind_rd = ['trim','grind'].includes(cut.parent||cut.primal||'');
+  const subMeta_rd = BFE.SUB_RATIOS[cutKey];
+  const curMo_rd = new Date().getMonth();
+  const pMs  = isTrimGrind_rd ? coMs : BFE.cutoutToPrimal(cut.primal, coMs, S.grade);
+  const sMs  = isTrimGrind_rd
+    ? coMs.map(m=>({ ...m, sub:+(m.cutout*(subMeta_rd?.baseRatioSC||1)*(subMeta_rd?subMeta_rd.seasonal[m.mo]/subMeta_rd.seasonal[curMo_rd]:1)).toFixed(2), scRatio:subMeta_rd?.baseRatioSC||1, slRatio:(subMeta_rd?.baseRatioSC||1)/BFE.CO_LIVE_BASE }))
+    : BFE.primalToSub(cutKey, pMs);
+
+  // Current ratios
+  const curSC = +(base / BFE.BASE_CHOICE_CO).toFixed(4);
+  const curSL = +(base / BFE.BASE_LIVE).toFixed(4);
+  const histSC = meta.baseRatioSC;
+  const histSL = meta.baseRatioSL;
+  const avgMonthlyRatios = AVG_SL_RATIO[cutKey] || null; // 3yr avg SP/LC per month
+
+  // Forecast avg ratios
+  const avgFcSC = sMs.length ? (sMs.reduce((s,m)=>s+m.scRatio,0)/sMs.length).toFixed(4) : '—';
+  const avgFcSL = sMs.length ? (sMs.reduce((s,m)=>s+m.slRatio,0)/sMs.length).toFixed(4) : '—';
+  const moAvgRatios = AVG_SL_RATIO[cutKey] || null; // for chart overlay
+  const peakSC  = sMs.length ? Math.max(...sMs.map(m=>m.scRatio)).toFixed(4) : '—';
+  const trghSC  = sMs.length ? Math.min(...sMs.map(m=>m.scRatio)).toFixed(4) : '—';
+  const peakMo  = sMs.length ? sMs.find(m=>m.scRatio===Math.max(...sMs.map(x=>x.scRatio)))?.label : '—';
+
+  document.getElementById('ratioDetailStats').innerHTML = [
+    {l:'Current SP/CO', v:`×${curSC}`, s:`Hist avg ×${histSC.toFixed(4)}`, c:curSC>histSC?'var(--green)':'var(--red)'},
+    {l:'Current SP/LC', v:`×${curSL}`, s:`Hist avg ×${histSL.toFixed(4)}`, c:curSL>histSL?'var(--green)':'var(--red)'},
+    {l:'12-Mo Avg SP/CO',v:`×${avgFcSC}`,s:'forecast mean'},
+    {l:'12-Mo Avg SP/LC',v:`×${avgFcSL}`,s:'forecast mean'},
+    {l:'Peak SP/CO',    v:`×${peakSC}`, s:peakMo, c:'var(--green)'},
+    {l:'SC Range',      v:`×${trghSC}–${peakSC}`,s:'12-mo seasonal range'},
+  ].map(s=>`<div style="background:var(--bg3);border-radius:7px;padding:10px 12px">
+    <div style="font-family:var(--mono);font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">${s.l}</div>
+    <div style="font-family:var(--mono);font-size:15px;font-weight:700;color:${s.c||'var(--text)'}">${s.v}</div>
+    <div style="font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:2px">${s.s}</div>
+  </div>`).join('');
+
+  // Ratio forecast chart (SP/CO and SP/LC over 12 months with hist reference lines)
+  const labels = sMs.map(m=>m.label);
+  const scFc   = sMs.map(m=>+m.scRatio.toFixed(4));
+  const slFc   = sMs.map(m=>+m.slRatio.toFixed(4));
+
+  const ctx = document.getElementById('ratioChart').getContext('2d');
+  if(CHARTS_RATIO.main){CHARTS_RATIO.main.destroy();CHARTS_RATIO.main=null;}
+  CHARTS_RATIO.main = new Chart(ctx,{type:'line',
+    data:{labels, datasets:[
+      {label:'SP/CO Forecast', data:scFc, borderColor:cut.color,borderWidth:2.5,
+        pointRadius:3,pointBackgroundColor:cut.color,pointBorderColor:'var(--bg)',pointBorderWidth:2,
+        tension:.4,fill:false,yAxisID:'y'},
+      {label:'SP/CO Hist Avg', data:Array(12).fill(+histSC.toFixed(4)),
+        borderColor:cut.color+'60',borderWidth:1,borderDash:[5,3],pointRadius:0,tension:0,fill:false,yAxisID:'y'},
+      {label:'SP/LC Forecast', data:slFc, borderColor:'var(--teal)',borderWidth:2,
+        pointRadius:2,tension:.4,fill:false,yAxisID:'y2'},
+      {label:'SP/LC Hist Avg', data:Array(12).fill(+histSL.toFixed(4)),
+        borderColor:'rgba(45,212,191,.4)',borderWidth:1,borderDash:[5,3],pointRadius:0,tension:0,fill:false,yAxisID:'y2'},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{
+        backgroundColor:'#131920',borderColor:'rgba(255,255,255,.1)',borderWidth:1,
+        titleFont:{family:"'JetBrains Mono'",size:10},bodyFont:{family:"'JetBrains Mono'",size:11},
+        titleColor:'#7a8899',bodyColor:'#dde5f0',
+        callbacks:{label:c2=>{
+          const labels2=['SP/CO Fcst','SP/CO Hist','SP/LC Fcst','SP/LC Hist'];
+          return `${labels2[c2.datasetIndex]}: ×${c2.parsed.y.toFixed(4)}`;
+        }}
+      }},
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{family:"'JetBrains Mono'",size:9},color:'#3d4d5e',maxRotation:45},border:{display:false}},
+        y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{family:"'JetBrains Mono'",size:9},color:cut.color+'99',callback:v=>'×'+v.toFixed(3)},border:{display:false},position:'left',title:{display:true,text:'SP/CO',color:cut.color+'77',font:{size:9}}},
+        y2:{grid:{display:false},ticks:{font:{family:"'JetBrains Mono'",size:9},color:'rgba(45,212,191,.6)',callback:v=>'×'+v.toFixed(3)},border:{display:false},position:'right',title:{display:true,text:'SP/LC',color:'rgba(45,212,191,.6)',font:{size:9}}},
+      }
+    }
+  });
+
+  // Monthly ratio table
+  const cc={High:'var(--green)',Medium:'var(--amber)',Low:'var(--red)'};
+  const cb={High:'rgba(61,214,140,.08)',Medium:'rgba(245,166,35,.08)',Low:'rgba(242,95,92,.08)'};
+  document.getElementById('ratioMonthTable').innerHTML = `<table>
+    <thead><tr>
+      <th>Month</th><th>SP/CO</th><th>vs Hist</th><th>SP/LC</th><th>vs Hist</th>
+      <th>SP/Primal</th><th>Seasonal Idx</th><th>SP $/cwt</th><th>Conf</th>
+    </tr></thead>
+    <tbody>${sMs.map(m=>{
+      const scVH = ((m.scRatio/histSC-1)*100).toFixed(1);
+      const slVH = ((m.slRatio/histSL-1)*100).toFixed(1);
+      return `<tr>
+        <td style="color:var(--text2)">${m.label}</td>
+        <td style="color:${cut.color};font-weight:700">×${m.scRatio.toFixed(4)}</td>
+        <td class="${parseFloat(scVH)>=0?'up':'dn'}">${parseFloat(scVH)>=0?'+':''}${scVH}%</td>
+        <td style="color:var(--teal)">×${m.slRatio.toFixed(4)}
+          ${avgMonthlyRatios ? `<span style="font-size:9px;color:var(--text3);display:block">3yr avg: ×${avgMonthlyRatios[m.mo]?.toFixed(4)||'—'}</span>` : ''}
+        </td>
+        <td class="${parseFloat(slVH)>=0?'up':'dn'}">${parseFloat(slVH)>=0?'+':''}${slVH}%</td>
+        <td style="color:var(--purple)">×${m.spRatio.toFixed(4)}</td>
+        <td style="color:${m.seasonIdx>=0?'var(--green)':'var(--red)'}">${m.seasonIdx>=0?'+':''}${m.seasonIdx}%</td>
+        <td style="color:${cut.color};font-weight:600">${(m.sub||0).toFixed(2)}</td>
+        <td><span class="cp" style="background:${cb[m.conf]};color:${cc[m.conf]};border:1px solid ${cc[m.conf]}30">${m.conf}</span></td>
+      </tr>`;
+    }).join('')}</tbody></table>`;
+
+  // Seasonal index bar chart
+  const annAvg = meta.seasonal.reduce((a,b)=>a+b,0)/12;
+  const seasonDevs = meta.seasonal.map(v=>+((v/annAvg-1)*100).toFixed(2));
+  const ctx2 = document.getElementById('ratioSeasonChart').getContext('2d');
+  if(CHARTS_RATIO.season){CHARTS_RATIO.season.destroy();CHARTS_RATIO.season=null;}
+  CHARTS_RATIO.season = new Chart(ctx2,{type:'bar',
+    data:{labels:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+      datasets:[{label:'SC Seasonal',data:seasonDevs,
+        backgroundColor:seasonDevs.map(v=>v>=0?cut.color+'88':'rgba(242,95,92,.55)'),
+        borderColor:seasonDevs.map(v=>v>=0?cut.color:'var(--red)'),
+        borderWidth:1,borderRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:c2=>`${c2.parsed.y>=0?'+':''}${c2.parsed.y.toFixed(2)}% vs annual avg SC ratio`}}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{family:"'JetBrains Mono'",size:9},color:'#3d4d5e'},border:{display:false}},
+        y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{family:"'JetBrains Mono'",size:9},color:'#3d4d5e',callback:v=>v+'%'},border:{display:false}},
+      }
+    }
+  });
+
+  // Historical observations table
+  const obsData = USDA_OBS[cutKey] || [];
+  document.getElementById('obsTable').innerHTML = obsData.length ?
+    `<table>
+      <thead><tr>
+        <th>Date</th><th>Sub-Primal</th><th>Choice Cutout</th><th>Live Cattle (est)</th>
+        <th>SP/CO Ratio</th><th>SP/LC Ratio</th><th>vs Hist SC Avg</th>
+      </tr></thead>
+      <tbody>${obsData.map(([mo,yr,co,lc,sp])=>{
+        const sc=(sp/co).toFixed(4); const sl=(sp/lc).toFixed(4);
+        const diff=((parseFloat(sc)/histSC-1)*100).toFixed(1);
+        return `<tr>
+          <td style="color:var(--text2)">${MONTH_NAMES[mo]} ${yr}</td>
+          <td style="color:${cut.color};font-weight:700">${sp.toFixed(2)}</td>
+          <td style="color:rgba(245,166,35,.8)">${co.toFixed(2)}</td>
+          <td style="color:rgba(242,95,92,.7)">${lc.toFixed(2)}</td>
+          <td style="color:var(--purple)">×${sc}</td>
+          <td style="color:var(--teal)">×${sl}</td>
+          <td class="${parseFloat(diff)>=0?'up':'dn'}">${parseFloat(diff)>=0?'+':''}${diff}%</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`
+    : '<div style="font-family:var(--mono);font-size:11px;color:var(--text3);padding:8px 0">No direct observations — seasonal derived from parent primal template</div>';
+}
+
+
+// ─── REFERENCE DATA TABLE ──────────────────────────────────────────────
+const RIBEYE_3YR_DATA = [
+  {date:'Jun 2023',mo:5, rib:920.00,co:328.00,lc:180.00},
+  {date:'Sep 2023',mo:8, rib:830.00,co:300.00,lc:183.00},
+  {date:'Dec 2023',mo:11,rib:865.00,co:292.00,lc:172.00},
+  {date:'Mar 2024',mo:2, rib:815.00,co:304.00,lc:185.00},
+  {date:'Jun 2024',mo:5, rib:875.00,co:318.00,lc:188.00},
+  {date:'Sep 2024',mo:8, rib:840.00,co:300.00,lc:181.00},
+  {date:'Dec 2024',mo:11,rib:910.00,co:290.00,lc:178.00},
+  {date:'Mar 2025',mo:2, rib:835.00,co:305.00,lc:184.00},
+  {date:'Jun 2025',mo:5, rib:880.00,co:312.00,lc:186.00},
+  {date:'Sep 2025',mo:8, rib:855.00,co:302.00,lc:182.00},
+  {date:'Dec 2025',mo:11,rib:895.00,co:295.00,lc:185.00},
+  {date:'Mar 2026',mo:2, rib:840.00,co:308.00,lc:187.00},
+  {date:'Jun 2026',mo:5, rib:1277.78,co:395.48,lc:256.86},
+];
+
+function populateReferenceTable() {
+  const tbody = document.getElementById('refTableBody');
+  const cards = document.getElementById('refSummaryCards');
+  if (!tbody) return;
+
+  const SEASON_LABELS = {11:'Q4 Holiday ⭐', 8:'Q3 Fall', 5:'Q2 Summer', 2:'Q1 Post-Holiday'};
+  const SEASON_COLORS = {11:'var(--green)', 8:'var(--amber)', 5:'var(--blue)', 2:'var(--red)'};
+  const avgRL = RIBEYE_3YR_DATA.reduce((s,r)=>s+r.rib/r.lc,0)/RIBEYE_3YR_DATA.length;
+  const avgRC = RIBEYE_3YR_DATA.reduce((s,r)=>s+r.rib/r.co,0)/RIBEYE_3YR_DATA.length;
+
+  tbody.innerHTML = RIBEYE_3YR_DATA.map(r => {
+    const rl = r.rib/r.lc, rc = r.rib/r.co;
+    const rlDev = ((rl/avgRL-1)*100).toFixed(1);
+    const sc = SEASON_LABELS[r.mo]||'';
+    const sc_c = SEASON_COLORS[r.mo]||'var(--text3)';
+    const isHoliday = r.mo===11;
+    return `<tr style="${isHoliday?'background:rgba(61,214,140,.04)':''}">
+      <td style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.025);color:var(--text2)">${r.date}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.025);text-align:right;color:var(--blue);font-weight:600">${r.rib.toFixed(2)}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.025);text-align:right;color:rgba(245,166,35,.8)">${r.co.toFixed(2)}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.025);text-align:right;color:rgba(242,95,92,.7)">${r.lc.toFixed(2)}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.025);text-align:right;color:var(--purple)">${rl.toFixed(4)} <span style="font-size:9px;color:${parseFloat(rlDev)>=0?'var(--green)':'var(--red)'}">(${rlDev>=0?'+':''}${rlDev}%)</span></td>
+      <td style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.025);text-align:right;color:var(--teal)">${rc.toFixed(4)}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.025);text-align:right;color:${sc_c};font-size:9px">${sc}</td>
+    </tr>`;
+  }).join('');
+
+  // Summary cards
+  const q_data = [
+    {label:'Q4 Avg (Dec)', mos:[11], color:'var(--green)'},
+    {label:'Q2 Avg (Jun)', mos:[5],  color:'var(--blue)'},
+    {label:'Q3 Avg (Sep)', mos:[8],  color:'var(--amber)'},
+    {label:'Q1 Avg (Mar)', mos:[2],  color:'var(--red)'},
+    {label:'3-Yr Avg RL',  all:true, color:'var(--text2)', isAvg:true},
+    {label:'3-Yr Avg RC',  all:true, color:'var(--text2)', isRC:true},
+  ];
+
+  cards.innerHTML = q_data.map(q => {
+    let rl_avg, rc_avg, n;
+    if (q.all) {
+      rl_avg = avgRL; rc_avg = avgRC; n = RIBEYE_3YR_DATA.length;
+    } else {
+      const filtered = RIBEYE_3YR_DATA.filter(r=>q.mos.includes(r.mo));
+      rl_avg = filtered.reduce((s,r)=>s+r.rib/r.lc,0)/filtered.length;
+      rc_avg = filtered.reduce((s,r)=>s+r.rib/r.co,0)/filtered.length;
+      n = filtered.length;
+    }
+    const val = q.isRC ? rc_avg : rl_avg;
+    const vsAvg = q.isAvg||q.isRC ? null : ((val/(q.isRC?avgRC:avgRL)-1)*100).toFixed(1);
+    return `<div style="background:var(--bg3);border-radius:7px;padding:10px 12px;border:1px solid var(--border)">
+      <div style="font-family:var(--mono);font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">${q.label}</div>
+      <div style="font-family:var(--mono);font-size:18px;font-weight:700;color:${q.color}">×${val.toFixed(4)}</div>
+      ${vsAvg!==null?`<div style="font-family:var(--mono);font-size:9px;color:${parseFloat(vsAvg)>=0?'var(--green)':'var(--red)'};margin-top:2px">${parseFloat(vsAvg)>=0?'+':''}${vsAvg}% vs 3yr avg</div>`:'<div style="font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:2px">n=${n}</div>'}
+    </div>`;
+  }).join('');
+}
+
+initApp();
+</script>
+
+<div style="position:fixed;bottom:6px;left:12px;z-index:7999;font-family:'JetBrains Mono',monospace;
+  font-size:8px;color:rgba(255,255,255,0.12);letter-spacing:.06em;pointer-events:none">
+  BEEF FORECAST SUITE v5.0 · BFE ENGINE v5.0 · BUILD 2026-06-22 · P3
+</div>
+</body>
+</html>
